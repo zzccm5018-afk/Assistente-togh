@@ -1,0 +1,43 @@
+# .env.example
+# ============
+# Copie este arquivo para ".env" e preencha com os seus valores reais.
+# NUNCA suba o arquivo ".env" (com valores reais) para o GitHub.
+#
+#   cp .env.example .env
+
+# --- Gemini API ------------------------------------------------------------
+# Crie a chave em https://aistudio.google.com/apikey
+GEMINI_API_KEY=
+GEMINI_CHAT_MODEL=gemini-1.5-flash
+GEMINI_EMBED_MODEL=gemini-embedding-001
+
+# --- Supabase --------------------------------------------------------------
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+
+# --- Qdrant ----------------------------------------------------------------
+QDRANT_URL=
+QDRANT_API_KEY=
+QDRANT_COLLECTION=documentos
+QDRANT_VECTOR_SIZE=768
+QDRANT_SCORE_THRESHOLD=0.55
+
+# --- Telegram (opcional, só se for usar o bot) -----------------------------
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+APP_PUBLIC_URL=
+
+# --- Modelo ativo / hot-swap ------------------------------------------------
+MODEL_CACHE_TTL_SECONDS=300
+
+# --- Pipeline de aprendizado contínuo --------------------------------------
+AUTO_FT_MIN_NEW_EXAMPLES=50
+AUTO_FT_MIN_RATING=
+AUTO_FT_POLL_INTERVAL_SECONDS=60
+AUTO_FT_POLL_TIMEOUT_SECONDS=3600
+
+# --- System prompt usado nos exemplos de fine-tuning -----------------------
+FT_SYSTEM_PROMPT=Você é um assistente simpático, natural e conversacional.
+
+# --- Porta local (opcional, usado só em "python main.py") ------------------
+PORT=8000
