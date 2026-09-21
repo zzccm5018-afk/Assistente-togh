@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Painel — Aprendizado Contínuo</title>
+<style>
+  :root{
+    --bg:#0b0d12; --bg-elev:#12151c; --bg-card:#161a23; --bg-card-hover:#1b202b;
+    --border:#242a37; --border-soft:#1c212c;
+    --text:#e8eaf0; --text-dim:#9aa2b4; --text-faint:#5b6478;
+    --accent:#6d8dff; --accent-dim:#3d4d8f; --accent-soft:#1c2440;
+    --good:#3ecf8e; --good-soft:#123326;
+    --bad:#ff6b6b; --bad-soft:#3a1a1a;
+    --warn:#ffb454; --warn-soft:#3a2a10;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    --radius: 10px;
+    --pad-top: env(safe-area-inset-top, 0px);
+    --pad-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f4f5f8; --bg-elev:#ffffff; --bg-card:#ffffff; --bg-card-hover:#f0f2f7;
+      --border:#e2e5ec; --border-soft:#ebedf3;
+      --text:#171a21; --text-dim:#5b6272; --text-faint:#9aa2b4;
+      --accent:#3f5fe0; --accent-dim:#c6d1ff; --accent-soft:#e8ecff;
+      --good:#0f9d63; --good-soft:#e3f8ee;
+      --bad:#d6483f; --bad-soft:#fdeceb;
+      --warn:#b5760a; --warn-soft:#fdf1de;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f5f8; --bg-elev:#ffffff; --bg-card:#ffffff; --bg-card-hover:#f0f2f7;
+    --border:#e2e5ec; --border-soft:#ebedf3;
+    --text:#171a21; --text-dim:#5b6272; --text-faint:#9aa2b4;
+    --accent:#3f5fe0; --accent-dim:#c6d1ff; --accent-soft:#e8ecff;
+    --good:#0f9d63; --good-soft:#e3f8ee;
+    --bad:#d6483f; --bad-soft:#fdeceb;
+    --warn:#b5760a; --warn-soft:#fdf1de;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  html{scroll-padding-top:var(--pad-top);}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:14px; line-height:1.5;
+    padding-top:var(--pad-top); padding-bottom:var(--pad-bottom);
+  }
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  a{color:var(--accent);text-decoration:none;}
+  button{font-family:inherit;font-size:13px;cursor:pointer;}
+  input,select,textarea{font-family:inherit;font-size:13px;}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 30% 20%, var(--accent-soft), transparent 60%), var(--bg);
+    padding:20px; z-index:50;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:var(--bg-card); border:1px solid var(--border);
+    border-radius:16px; padding:32px 28px; box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+  .login-logo{
+    width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#9d6dff);
+    display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;
+  }
+  .login-card h1{font-size:18px;margin:0 0 4px;}
+  .login-card p{color:var(--text-dim);margin:0 0 22px;font-size:13px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:600;}
+  .field input, .field select, .field textarea{
+    width:100%; background:var(--bg-elev); border:1px solid var(--border); color:var(--text);
+    padding:10px 12px; border-radius:8px; outline:none; transition:border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--accent);}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg-elev); color:var(--text); font-weight:600; transition:.15s;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--bg-card-hover);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-danger{background:transparent;border-color:var(--bad);color:var(--bad);}
+  .btn-danger:hover{background:var(--bad-soft);}
+  .btn-good{background:transparent;border-color:var(--good);color:var(--good);}
+  .btn-good:hover{background:var(--good-soft);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+  .err-box{
+    background:var(--bad-soft); border:1px solid var(--bad); color:var(--bad);
+    padding:9px 12px; border-radius:8px; font-size:12.5px; margin-top:12px; display:none;
+  }
+
+  /* ---------- App shell ---------- */
+  #app{display:none; min-height:100%; grid-template-columns:220px 1fr;}
+  #app.ready{display:grid;}
+  @media (max-width: 860px){ #app.ready{grid-template-columns:1fr;} }
+
+  #sidebar{
+    background:var(--bg-elev); border-right:1px solid var(--border);
+    padding:18px 12px; display:flex; flex-direction:column; gap:4px;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    padding-top:calc(18px + var(--pad-top));
+  }
+  @media (max-width:860px){ #sidebar{position:static; height:auto;} }
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--text-faint);}
+  .brand .dot.ok{background:var(--good);box-shadow:0 0 8px var(--good);}
+  .brand strong{font-size:14px;}
+  .brand span{font-size:11px;color:var(--text-faint);display:block;}
+  .nav-btn{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px;
+    color:var(--text-dim); background:transparent; border:none; text-align:left; font-size:13px; font-weight:600;
+  }
+  .nav-btn .ico{width:18px;text-align:center;opacity:.85;}
+  .nav-btn:hover{background:var(--bg-card-hover); color:var(--text);}
+  .nav-btn.active{background:var(--accent-soft); color:var(--accent);}
+  .nav-spacer{flex:1;}
+  .sidebar-foot{padding:10px; border-top:1px solid var(--border-soft); margin-top:8px;}
+  .theme-toggle{display:flex;gap:6px;}
+  .theme-toggle button{flex:1;}
+
+  #main{padding:22px 26px 60px; max-width:1180px; min-width:0;}
+  @media (max-width:640px){ #main{padding:16px 14px 50px;} }
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:12px; flex-wrap:wrap;}
+  .topbar h2{margin:0; font-size:20px;}
+  .topbar .sub{color:var(--text-dim); font-size:12.5px; margin-top:2px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .grid{display:grid; gap:14px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  @media (max-width:900px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px;
+  }
+  .card h3{margin:0 0 10px; font-size:13px; color:var(--text-dim); font-weight:700; text-transform:uppercase; letter-spacing:.04em;}
+  .stat-card .num{font-size:26px; font-weight:700; margin:2px 0 2px;}
+  .stat-card .label{font-size:12px; color:var(--text-dim);}
+  .stat-card .badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 8px; border-radius:20px; margin-top:8px;}
+  .badge-ok{background:var(--good-soft); color:var(--good);}
+  .badge-bad{background:var(--bad-soft); color:var(--bad);}
+  .badge-warn{background:var(--warn-soft); color:var(--warn);}
+  .badge-neutral{background:var(--border-soft); color:var(--text-dim);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em;
+    color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border); font-weight:700;
+  }
+  tbody td{padding:10px; border-bottom:1px solid var(--border-soft); vertical-align:top;}
+  tbody tr:hover{background:var(--bg-card-hover);}
+  .table-wrap{overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border);}
+  .table-wrap table{border:none;}
+  .table-wrap thead th:first-child, .table-wrap tbody td:first-child{padding-left:14px;}
+
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .toolbar .grow{flex:1; min-width:180px;}
+  .pill{
+    display:inline-flex; align-items:center; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700;
+  }
+  .mono{font-family:var(--mono); font-size:12px;}
+  .muted{color:var(--text-dim);}
+  .faint{color:var(--text-faint); font-size:12px;}
+  .clip{max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .flex-between{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .flex-gap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:flex-start; justify-content:center;
+    padding:40px 16px; overflow-y:auto; z-index:60; backdrop-filter:blur(2px);
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:14px; width:100%; max-width:640px;
+    padding:20px; max-height:calc(100vh - 80px); overflow-y:auto;
+  }
+  .modal-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:10px;}
+  .modal-head h3{margin:0; font-size:16px;}
+  .modal .x{background:none;border:none;color:var(--text-dim);font-size:20px;line-height:1;padding:4px;}
+
+  .log-box{
+    background:#05070a; color:#b9f5c8; font-family:var(--mono); font-size:12px; border-radius:8px;
+    padding:12px; max-height:320px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;
+    border:1px solid var(--border);
+  }
+  :root[data-theme="light"] .log-box{background:#0e1116;}
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .log-box{background:#0e1116;} }
+
+  .toast-wrap{position:fixed; bottom:calc(18px + var(--pad-bottom)); right:18px; display:flex; flex-direction:column; gap:8px; z-index:80;}
+  .toast{
+    background:var(--bg-elev); border:1px solid var(--border); border-left:3px solid var(--accent);
+    padding:11px 14px; border-radius:8px; font-size:13px; min-width:220px; max-width:340px;
+    box-shadow:0 10px 30px rgba(0,0,0,.3); animation:slidein .2s ease;
+  }
+  .toast.ok{border-left-color:var(--good);}
+  .toast.bad{border-left-color:var(--bad);}
+  @keyframes slidein{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .empty{text-align:center; padding:36px 16px; color:var(--text-faint); font-size:13px;}
+  .spin{
+    width:16px;height:16px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);
+    animation:spin .7s linear infinite; display:inline-block;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .kv{display:grid; grid-template-columns:130px 1fr; gap:6px 12px; font-size:13px;}
+  .kv div:nth-child(odd){color:var(--text-dim);}
+
+  .drop-zone{
+    border:1.5px dashed var(--border); border-radius:10px; padding:26px 16px; text-align:center;
+    color:var(--text-dim); font-size:13px; transition:.15s; cursor:pointer; background:var(--bg-elev);
+  }
+  .drop-zone:hover, .drop-zone.drag{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .drop-zone input{display:none;}
+
+  .tag{display:inline-block; padding:1px 7px; border-radius:5px; background:var(--border-soft); font-size:11px; color:var(--text-dim); margin:1px 3px 1px 0;}
+  .rating--1{color:var(--bad);} .rating-0{color:var(--text-faint);} .rating-1{color:var(--good);}
+
+  .msg-block{
+    background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px;
+    font-size:13px; white-space:pre-wrap; word-break:break-word; margin-bottom:10px;
+  }
+  .msg-role{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:700; margin-bottom:4px;}
+
+  hr.sep{border:none; border-top:1px solid var(--border-soft); margin:16px 0;}
+
+  .preview-img{max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border); margin-top:8px;}
+  .progress-track{height:6px; background:var(--border-soft); border-radius:4px; overflow:hidden; margin-top:6px;}
+  .progress-bar{height:100%; background:var(--accent); width:0%; transition:width .2s;}
+
+  .checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px;}
+  .checkbox-row input{width:auto;}
+
+  code.inline{background:var(--border-soft); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:12px;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🧠</div>
+    <h1>Painel de aprendizado contínuo</h1>
+    <p>Informe o token de administrador para entrar.</p>
+    <div class="field">
+      <label>Token</label>
+      <input type="password" id="login-token" placeholder="ADMIN_TOKEN" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>URL base da API (opcional)</label>
+      <input type="text" id="login-base" placeholder="mesma origem, ex: deixe em branco" autocomplete="off" />
+    </div>
+    <button class="btn btn-primary btn-block" id="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="err-box" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="dot" id="conn-dot"></div>
+      <div>
+        <strong>Painel Admin</strong>
+        <span>ciclo de aprendizado</span>
+      </div>
+    </div>
+
+    <button class="nav-btn active" data-view="overview"><span class="ico">📊</span> Visão geral</button>
+    <button class="nav-btn" data-view="conversations"><span class="ico">💬</span> Conversas</button>
+    <button class="nav-btn" data-view="files"><span class="ico">📁</span> Arquivos</button>
+    <button class="nav-btn" data-view="ingest"><span class="ico">📥</span> Base de conhecimento</button>
+    <button class="nav-btn" data-view="training"><span class="ico">🚀</span> Treinos</button>
+    <button class="nav-btn" data-view="models"><span class="ico">🧩</span> Modelos</button>
+    <button class="nav-btn" data-view="pipeline"><span class="ico">🔄</span> Pipeline</button>
+    <button class="nav-btn" data-view="history"><span class="ico">🕓</span> Histórico</button>
+    <button class="nav-btn" data-view="config"><span class="ico">⚙️</span> Configuração</button>
+
+    <div class="nav-spacer"></div>
+    <div class="sidebar-foot">
+      <div class="theme-toggle" style="margin-bottom:8px;">
+        <button class="btn btn-sm" onclick="setTheme('light')">☀️ Claro</button>
+        <button class="btn btn-sm" onclick="setTheme('dark')">🌙 Escuro</button>
+      </div>
+      <button class="btn btn-sm btn-block" onclick="doLogout()">Sair</button>
+    </div>
+  </aside>
+
+  <main id="main">
+
+    <!-- ---------- OVERVIEW ---------- -->
+    <section class="view active" id="view-overview">
+      <div class="topbar">
+        <div>
+          <h2>Visão geral</h2>
+          <div class="sub">Status do modelo em produção e das integrações</div>
+        </div>
+        <button class="btn" onclick="loadOverview()">↻ Atualizar</button>
+      </div>
+
+      <div class="grid grid-4" id="overview-stats" style="margin-bottom:14px;"></div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Integrações</h3>
+          <div id="overview-integrations" class="flex-gap" style="flex-direction:column; align-items:stretch;"></div>
+        </div>
+        <div class="card">
+          <h3>Último treino publicado</h3>
+          <div id="overview-lastrun"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <h3>Ciclos recentes</h3>
+        <div id="overview-runs" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ---------- CONVERSATIONS ---------- -->
+    <section class="view" id="view-conversations">
+      <div class="topbar">
+        <div><h2>Conversas</h2><div class="sub">Listar, buscar, curar notas e excluir</div></div>
+        <button class="btn" onclick="loadConversations()">↻ Atualizar</button>
+      </div>
+
+      <div class="toolbar">
+        <input class="grow" id="conv-search" placeholder="Buscar por texto na conversa..." onkeydown="if(event.key==='Enter')loadConversations()" />
+        <select id="conv-rating" onchange="loadConversations()">
+          <option value="">Todas as notas</option>
+          <option value="1">👍 Boa (1)</option>
+          <option value="0">😐 Neutra (0)</option>
+          <option value="-1">👎 Ruim (-1)</option>
+        </select>
+        <button class="btn" onclick="loadConversations()">Buscar</button>
+        <button class="btn btn-danger" id="conv-bulk-del" onclick="bulkDeleteConversations()" disabled>Excluir selecionadas</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="conv-select-all" onchange="toggleSelectAllConv(this)"/></th>
+              <th>Quando</th><th>Canal</th><th>Usuário</th><th>Mensagem</th><th>Nota</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="conv-tbody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="flex-between" style="margin-top:12px;">
+        <span class="faint" id="conv-pageinfo"></span>
+        <div class="flex-gap">
+          <button class="btn btn-sm" onclick="convPage(-1)">← Anterior</button>
+          <button class="btn btn-sm" onclick="convPage(1)">Próxima →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- FILES ---------- -->
+    <section class="view" id="view-files">
+      <div class="topbar">
+        <div><h2>Arquivos / Datasets</h2><div class="sub">Exportar, subir, validar e gerenciar .jsonl</div></div>
+        <button class="btn" onclick="loadFiles()">↻ Atualizar</button>
+      </div>
+
+      <div class="grid grid-2" style="margin-bottom:14px;">
+        <div class="card">
+          <h3>Exportar do Supabase</h3>
+          <div class="field">
+            <label>Nota mínima</label>
+            <select id="export-rating">
+              <option value="">Sem filtro (todas)</option>
+              <option value="1">Somente boas (1)</option>
+              <option value="0">Neutras ou melhores (0)</option>
+              <option value="-1">Todas incl. ruins (-1)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nome do arquivo (opcional)</label>
+            <input id="export-name" placeholder="dataset_automatico.jsonl" />
+          </div>
+          <button class="btn btn-primary btn-block" onclick="exportDataset()">Exportar novo dataset</button>
+        </div>
+        <div class="card">
+          <h3>Subir arquivo .jsonl</h3>
+          <div class="drop-zone" id="upload-drop" onclick="document.getElementById('upload-input').click()">
+            📄 Clique ou arraste um arquivo .jsonl aqui
+            <input type="file" id="upload-input" accept=".jsonl" />
+          </div>
+          <div class="checkbox-row" style="margin-top:10px;">
+            <input type="checkbox" id="upload-overwrite"/> <label for="upload-overwrite">Substituir se já existir</label>
+          </div>
+          <div id="upload-status" class="faint" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Exemplos</th><th>Tamanho</th><th>Modificado</th><th></th></tr></thead>
+          <tbody id="files-tbody"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- RAG INGEST ---------- -->
+    <section class="view" id="view-ingest">
+      <div class="topbar">
+        <div><h2>Base de conhecimento (RAG)</h2><div class="sub">Enviar texto ou imagem para indexação no Qdrant via <code class="inline">/ingest</code></div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px; border-left:3px solid var(--warn);">
+        <strong style="color:var(--warn);">Atenção:</strong>
+        <span class="muted"> o endpoint <code class="inline">/ingest</code> do main.py indexa apenas <strong>texto</strong> — não existe OCR automático de imagem no backend.
+        Para arquivos <code class="inline">.txt</code>/<code class="inline">.md</code> o texto é lido direto no navegador. Para imagens, anexe o arquivo (fica só como referência visual/metadado) e cole manualmente o texto que deve ser indexado.</span>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Novo documento</h3>
+          <div class="field">
+            <label>Título</label>
+            <input id="ingest-title" placeholder="Ex: Política de trocas 2026" />
+          </div>
+
+          <div class="field">
+            <label>Tipo de fonte</label>
+            <select id="ingest-type" onchange="onIngestTypeChange()">
+              <option value="text">Texto colado</option>
+              <option value="file">Arquivo de texto (.txt, .md, .csv)</option>
+              <option value="image">Imagem (requer texto manual)</option>
+            </select>
+          </div>
+
+          <div id="ingest-file-zone" style="display:none;">
+            <div class="drop-zone" id="ingest-drop" onclick="document.getElementById('ingest-file-input').click()">
+              📎 Clique ou arraste o arquivo aqui
+              <input type="file" id="ingest-file-input" />
+            </div>
+            <img id="ingest-img-preview" class="preview-img" style="display:none;" />
+          </div>
+
+          <div class="field">
+            <label id="ingest-text-label">Texto a indexar</label>
+            <textarea id="ingest-text" rows="10" placeholder="Cole ou digite o conteúdo que será transformado em embedding…"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Metadados extra (JSON, opcional)</label>
+            <input id="ingest-meta" placeholder='{"categoria":"faq","origem":"manual"}' />
+          </div>
+
+          <button class="btn btn-primary btn-block" onclick="submitIngest()">Indexar no Qdrant</button>
+          <div id="ingest-status" class="faint" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="card">
+          <h3>Como funciona</h3>
+          <div class="kv">
+            <div>Endpoint</div><div class="mono">POST /ingest</div>
+            <div>Embeddings</div><div>Together AI (<span class="muted">TOGETHER_EMBED_MODEL</span>)</div>
+            <div>Armazenamento</div><div>Qdrant (<span class="muted">QDRANT_COLLECTION</span>)</div>
+            <div>Autenticação</div><div class="muted">Este endpoint não usa o token admin — está exposto no main.py.</div>
+          </div>
+          <hr class="sep"/>
+          <p class="faint">Depois de indexado, o texto entra na busca semântica usada pelo <code class="inline">/chat</code>. Chunks com score abaixo de <code class="inline">QDRANT_SCORE_THRESHOLD</code> são ignorados nas respostas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- TRAINING ---------- -->
+    <section class="view" id="view-training">
+      <div class="topbar">
+        <div><h2>Treinos</h2><div class="sub">Disparar fine-tuning na Together AI e acompanhar jobs</div></div>
+        <button class="btn" onclick="loadJobs()">↻ Atualizar</button>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <h3>Novo treino</h3>
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Arquivo (.jsonl)</label>
+            <select id="train-file"></select>
+          </div>
+          <div class="field">
+            <label>Modelo base</label>
+            <input id="train-basemodel" placeholder="carregando…" />
+          </div>
+          <div class="field">
+            <label>Épocas</label>
+            <input id="train-epochs" type="number" value="3" min="1" />
+          </div>
+          <div class="field">
+            <label>Sufixo</label>
+            <input id="train-suffix" placeholder="ft-202601010000" />
+          </div>
+          <div class="field">
+            <label>Learning rate (opcional)</label>
+            <input id="train-lr" placeholder="1e-5" />
+          </div>
+          <div class="field">
+            <label>Batch size (opcional)</label>
+            <input id="train-batch" placeholder="auto" />
+          </div>
+        </div>
+        <div class="checkbox-row" style="margin:6px 0 14px;">
+          <input type="checkbox" id="train-ignore-invalid"/> <label for="train-ignore-invalid">Treinar mesmo com linhas inválidas</label>
+        </div>
+        <button class="btn btn-primary" onclick="startTraining()">Iniciar treino</button>
+        <span id="train-status" class="faint" style="margin-left:10px;"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Job</th><th>Modelo base</th><th>Saída</th><th>Status</th><th>Criado</th><th></th></tr></thead>
+          <tbody id="jobs-tbody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- MODELS ---------- -->
+    <section class="view" id="view-models">
+      <div class="topbar">
+        <div><h2>Modelos</h2><div class="sub">Testar (sanity check) e publicar em produção</div></div>
+        <button class="btn" onclick="loadModels()">↻ Atualizar</button>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="flex-between">
+          <div>
+            <h3 style="margin-bottom:4px;">Modelo ativo agora</h3>
+            <div class="mono" id="active-model-name" style="font-size:15px;">—</div>
+          </div>
+          <span class="pill badge-neutral" id="active-model-badge">model_config</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modelo</th><th>Base</th><th>Criado</th><th></th></tr></thead>
+          <tbody id="models-tbody"><tr><td colspan="4" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- PIPELINE ---------- -->
+    <section class="view" id="view-pipeline">
+      <div class="topbar">
+        <div><h2>Pipeline</h2><div class="sub">Rodar o ciclo completo (exportar → treinar → validar → publicar)</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="grid grid-3">
+          <div class="field">
+            <label>Mínimo de exemplos novos</label>
+            <input id="pl-min-new" type="number" value="50" />
+          </div>
+          <div class="field">
+            <label>Nota mínima</label>
+            <select id="pl-min-rating">
+              <option value="">Sem filtro</option>
+              <option value="1">1</option><option value="0">0</option><option value="-1">-1</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sufixo (opcional)</label>
+            <input id="pl-suffix" placeholder="autoft-…" />
+          </div>
+          <div class="field">
+            <label>Intervalo de checagem (s)</label>
+            <input id="pl-poll-interval" type="number" value="60" />
+          </div>
+          <div class="field">
+            <label>Timeout (s)</label>
+            <input id="pl-poll-timeout" type="number" value="3600" />
+          </div>
+          <div class="field checkbox-row" style="align-self:end; margin-bottom:14px;">
+            <input type="checkbox" id="pl-dry-run" checked/> <label for="pl-dry-run">Modo de teste (dry-run, não publica nada)</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="runPipeline()">▶ Rodar ciclo</button>
+      </div>
+
+      <div class="card" id="pipeline-task-card" style="display:none;">
+        <div class="flex-between" style="margin-bottom:10px;">
+          <h3 style="margin:0;">Execução ao vivo</h3>
+          <span class="pill" id="pipeline-task-status">running</span>
+        </div>
+        <div class="log-box" id="pipeline-log"></div>
+      </div>
+    </section>
+
+    <!-- ---------- HISTORY ---------- -->
+    <section class="view" id="view-history">
+      <div class="topbar">
+        <div><h2>Histórico</h2><div class="sub">Todos os ciclos já executados (tabela training_runs)</div></div>
+        <button class="btn" onclick="loadHistory()">↻ Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Início</th><th>Fim</th><th>Status</th><th>Exemplos</th><th>Modelo</th><th>Notas</th></tr></thead>
+          <tbody id="history-tbody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- CONFIG ---------- -->
+    <section class="view" id="view-config">
+      <div class="topbar">
+        <div><h2>Configuração</h2><div class="sub">Somente leitura — definido nas variáveis de ambiente do servidor</div></div>
+        <button class="btn" onclick="loadConfig()">↻ Atualizar</button>
+      </div>
+      <div class="card">
+        <div class="kv" id="config-kv"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ---------- Modal: conversa ---------- -->
+<div class="modal-backdrop" id="modal-conv">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Conversa</h3>
+      <button class="x" onclick="closeModal('modal-conv')">✕</button>
+    </div>
+    <div id="modal-conv-body"></div>
+  </div>
+</div>
+
+<!-- ---------- Modal: preview arquivo ---------- -->
+<div class="modal-backdrop" id="modal-preview">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-preview-title">Prévia</h3>
+      <button class="x" onclick="closeModal('modal-preview')">✕</button>
+    </div>
+    <div id="modal-preview-body"></div>
+  </div>
+</div>
+
+<!-- ---------- Modal: job detail ---------- -->
+<div class="modal-backdrop" id="modal-job">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Detalhes do job</h3>
+      <button class="x" onclick="closeModal('modal-job')">✕</button>
+    </div>
+    <div id="modal-job-body"></div>
+  </div>
+</div>
+
+<!-- ---------- Modal: task log (export/train genérico) ---------- -->
+<div class="modal-backdrop" id="modal-task">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-task-title">Tarefa</h3>
+      <button class="x" onclick="closeModal('modal-task')">✕</button>
+    </div>
+    <div class="log-box" id="modal-task-log"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+/* ==========================================================================
+   Estado global
+   ========================================================================== */
+const state = {
+  token: localStorage.getItem('admin_token') || '',
+  base: localStorage.getItem('admin_base') || '',
+  conv: { limit: 25, offset: 0, total: 0 },
+  selectedConvIds: new Set(),
+};
+
+function apiUrl(path){ return (state.base || '') + path; }
+
+/* ==========================================================================
+   Fetch helper com token de admin
+   ========================================================================== */
+async function api(path, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {});
+  if (state.token) headers['x-admin-token'] = state.token;
+  if (opts.json !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.json);
+  }
+  let res;
+  try {
+    res = await fetch(apiUrl(path), { ...opts, headers });
+  } catch (e) {
+    throw new Error('Falha de rede ao chamar ' + path + ': ' + e.message);
+  }
+  if (res.status === 401) {
+    showLogin('Sessão expirada ou token inválido. Entre novamente.');
+    throw new Error('não autorizado');
+  }
+  const ct = res.headers.get('content-type') || '';
+  let data = null;
+  if (ct.includes('application/json')) {
+    data = await res.json().catch(() => null);
+  }
+  if (!res.ok) {
+    const detail = (data && (data.detail || data.error)) || res.statusText;
+    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+function toast(msg, kind = '') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; }, 3200);
+  setTimeout(() => el.remove(), 3600);
+}
+function errToast(e){ toast(e.message || String(e), 'bad'); }
+
+/* ==========================================================================
+   Login / logout
+   ========================================================================== */
+function showLogin(msg) {
+  document.getElementById('app').classList.remove('ready');
+  document.getElementById('login-screen').style.display = 'flex';
+  const errBox = document.getElementById('login-err');
+  if (msg) { errBox.textContent = msg; errBox.style.display = 'block'; }
+  else { errBox.style.display = 'none'; }
+}
+
+async function doLogin() {
+  const token = document.getElementById('login-token').value.trim();
+  const base = document.getElementById('login-base').value.trim();
+  if (!token) { document.getElementById('login-err').textContent = 'Informe o token.'; document.getElementById('login-err').style.display = 'block'; return; }
+  state.token = token;
+  state.base = base;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Entrando…';
+  try {
+    await api('/admin/api/login', { method: 'POST', json: { token } });
+    localStorage.setItem('admin_token', token);
+    localStorage.setItem('admin_base', base);
+    enterApp();
+  } catch (e) {
+    document.getElementById('login-err').textContent = e.message || 'Token incorreto.';
+    document.getElementById('login-err').style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+function doLogout() {
+  api('/admin/api/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('admin_token');
+  state.token = '';
+  showLogin();
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  document.getElementById('conn-dot').classList.add('ok');
+  navTo('overview');
+  loadOverview();
+}
+
+/* ==========================================================================
+   Tema
+   ========================================================================== */
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('admin_theme', t);
+}
+(function initTheme(){
+  const saved = localStorage.getItem('admin_theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+/* ==========================================================================
+   Navegação
+   ========================================================================== */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => navTo(btn.dataset.view));
+});
+function navTo(view) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  const loaders = {
+    overview: loadOverview, conversations: loadConversations, files: loadFiles,
+    training: loadTrainingView, models: loadModels, history: loadHistory, config: loadConfig,
+  };
+  if (loaders[view]) loaders[view]();
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('pt-BR'); } catch { return iso; }
+}
+function fmtBytes(n) {
+  if (n == null) return '—';
+  const units = ['B','KB','MB','GB']; let i = 0; let v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(v < 10 && i > 0 ? 1 : 0) + ' ' + units[i];
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ==========================================================================
+   VISÃO GERAL
+   ========================================================================== */
+async function loadOverview() {
+  try {
+    const d = await api('/admin/api/overview');
+    const stats = document.getElementById('overview-stats');
+    stats.innerHTML = `
+      <div class="card stat-card">
+        <div class="label">Modelo ativo</div>
+        <div class="num" style="font-size:15px;" class="mono">${escapeHtml(d.active_model?.active_model || '—')}</div>
+        <span class="badge badge-neutral">model_config</span>
+      </div>
+      <div class="card stat-card">
+        <div class="label">Conversas totais</div>
+        <div class="num">${d.conversations_total ?? '—'}</div>
+        <span class="badge ${d.tables.conversations ? 'badge-ok' : 'badge-bad'}">${d.tables.conversations ? 'tabela ok' : 'sem tabela'}</span>
+      </div>
+      <div class="card stat-card">
+        <div class="label">Conversas novas</div>
+        <div class="num">${d.conversations_new ?? '—'}</div>
+        <span class="badge badge-neutral">desde último treino</span>
+      </div>
+      <div class="card stat-card">
+        <div class="label">Datasets salvos</div>
+        <div class="num">${d.datasets_count}</div>
+        <span class="badge badge-neutral">cache ${d.cache_ttl}s</span>
+      </div>`;
+
+    const integ = document.getElementById('overview-integrations');
+    const rows = [
+      ['Supabase', d.integrations.supabase],
+      ['Together AI', d.integrations.together],
+    ];
+    integ.innerHTML = rows.map(([name, s]) => `
+      <div class="flex-between card" style="padding:10px 12px;">
+        <span>${name}</span>
+        <span class="pill ${s.ok ? 'badge-ok' : 'badge-bad'}">${s.ok ? 'conectado' : (s.detail || 'falha')}</span>
+      </div>`).join('');
+
+    const lastrun = document.getElementById('overview-lastrun');
+    if (d.last_run) {
+      lastrun.innerHTML = `
+        <div class="kv">
+          <div>Status</div><div><span class="pill badge-ok">sucesso</span></div>
+          <div>Finalizado</div><div>${fmtDate(d.last_run.finished_at)}</div>
+          <div>Modelo</div><div class="mono">${escapeHtml(d.last_run.model_id || '—')}</div>
+          <div>Exemplos</div><div>${d.last_run.examples_count ?? '—'}</div>
+        </div>`;
+    } else {
+      lastrun.innerHTML = '<div class="empty">Nenhum treino bem-sucedido registrado ainda.</div>';
+    }
+
+    const runsBox = document.getElementById('overview-runs');
+    if (d.runs_recent && d.runs_recent.length) {
+      runsBox.innerHTML = renderRunsTable(d.runs_recent);
+    } else {
+      runsBox.innerHTML = '<div class="empty">Sem ciclos registrados.</div>';
+    }
+  } catch (e) { errToast(e); }
+}
+
+function statusBadge(status) {
+  const map = { success: 'badge-ok', failed: 'badge-bad', skipped: 'badge-warn', running: 'badge-neutral' };
+  return `<span class="pill ${map[status] || 'badge-neutral'}">${escapeHtml(status || '—')}</span>`;
+}
+
+function renderRunsTable(runs) {
+  return `<table><thead><tr><th>Início</th><th>Status</th><th>Exemplos</th><th>Modelo</th><th>Notas</th></tr></thead>
+    <tbody>${runs.map(r => `
+      <tr>
+        <td>${fmtDate(r.started_at)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.examples_count ?? '—'}</td>
+        <td class="mono clip">${escapeHtml(r.model_id || '—')}</td>
+        <td class="faint clip">${escapeHtml(r.notes || '')}</td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+/* ==========================================================================
+   CONVERSAS
+   ========================================================================== */
+async function loadConversations() {
+  const tbody = document.getElementById('conv-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin"></span></td></tr>';
+  const rating = document.getElementById('conv-rating').value;
+  const search = document.getElementById('conv-search').value.trim();
+  try {
+    const params = new URLSearchParams({ limit: state.conv.limit, offset: state.conv.offset });
+    if (rating) params.set('rating', rating);
+    if (search) params.set('search', search);
+    const d = await api('/admin/api/conversations?' + params.toString());
+    state.conv.total = d.total;
+    state.selectedConvIds.clear();
+    updateBulkDeleteBtn();
+    if (!d.items.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhuma conversa encontrada.</td></tr>';
+    } else {
+      tbody.innerHTML = d.items.map(c => `
+        <tr>
+          <td><input type="checkbox" class="conv-check" data-id="${escapeHtml(c.id)}" onchange="onConvCheck(this)"/></td>
+          <td class="faint">${fmtDate(c.created_at)}</td>
+          <td>${escapeHtml(c.channel || '—')}</td>
+          <td class="mono faint">${escapeHtml(String(c.user_id || '').slice(0,12))}</td>
+          <td class="clip">${escapeHtml(c.user_message || c.message || '')}</td>
+          <td>${ratingLabel(c.rating)}</td>
+          <td class="flex-gap">
+            <button class="btn btn-sm" onclick="openConversation('${escapeHtml(c.id)}')">Ver</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteConversation('${escapeHtml(c.id)}')">Excluir</button>
+          </td>
+        </tr>`).join('');
+    }
+    const from = d.total === 0 ? 0 : state.conv.offset + 1;
+    const to = Math.min(state.conv.offset + state.conv.limit, d.total);
+    document.getElementById('conv-pageinfo').textContent = `${from}–${to} de ${d.total}`;
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar.</td></tr>';
+    errToast(e);
+  }
+}
+function ratingLabel(r) {
+  if (r === 1) return '<span class="rating-1">👍 boa</span>';
+  if (r === -1) return '<span class="rating--1">👎 ruim</span>';
+  if (r === 0) return '<span class="rating-0">😐 neutra</span>';
+  return '<span class="faint">—</span>';
+}
+function convPage(dir) {
+  const next = state.conv.offset + dir * state.conv.limit;
+  if (next < 0) return;
+  if (dir > 0 && next >= state.conv.total) return;
+  state.conv.offset = next;
+  loadConversations();
+}
+function toggleSelectAllConv(cb) {
+  document.querySelectorAll('.conv-check').forEach(el => { el.checked = cb.checked; onConvCheck(el, true); });
+  updateBulkDeleteBtn();
+}
+function onConvCheck(el, silent) {
+  if (el.checked) state.selectedConvIds.add(el.dataset.id);
+  else state.selectedConvIds.delete(el.dataset.id);
+  if (!silent) updateBulkDeleteBtn();
+}
+function updateBulkDeleteBtn() {
+  document.getElementById('conv-bulk-del').disabled = state.selectedConvIds.size === 0;
+}
+async function bulkDeleteConversations() {
+  const ids = Array.from(state.selectedConvIds);
+  if (!ids.length) return;
+  if (!confirm(`Excluir ${ids.length} conversa(s)? Essa ação não pode ser desfeita.`)) return;
+  try {
+    await api('/admin/api/conversations/bulk-delete', { method: 'POST', json: { ids } });
+    toast(`${ids.length} conversa(s) excluída(s).`, 'ok');
+    loadConversations();
+  } catch (e) { errToast(e); }
+}
+async function deleteConversation(id) {
+  if (!confirm('Excluir esta conversa?')) return;
+  try {
+    await api('/admin/api/conversations/' + encodeURIComponent(id), { method: 'DELETE' });
+    toast('Conversa excluída.', 'ok');
+    loadConversations();
+  } catch (e) { errToast(e); }
+}
+async function openConversation(id) {
+  try {
+    const c = await api('/admin/api/conversations/' + encodeURIComponent(id));
+    const body = document.getElementById('modal-conv-body');
+    const sources = (c.sources || []).map(s => `<span class="tag">${escapeHtml(s.title || s.doc_id || 'fonte')} (${(s.score ?? 0).toFixed?.(2) ?? s.score})</span>`).join(' ') || '<span class="faint">nenhuma</span>';
+    body.innerHTML = `
+      <div class="kv" style="margin-bottom:12px;">
+        <div>Quando</div><div>${fmtDate(c.created_at)}</div>
+        <div>Canal</div><div>${escapeHtml(c.channel || '—')}</div>
+        <div>Usuário</div><div class="mono">${escapeHtml(c.user_id || '—')}</div>
+        <div>Fontes</div><div>${sources}</div>
+      </div>
+      <div class="msg-block"><div class="msg-role">Usuário</div>${escapeHtml(c.user_message || c.message || '')}</div>
+      <div class="msg-block"><div class="msg-role">Assistente</div>${escapeHtml(c.answer || c.assistant_message || '')}</div>
+      <hr class="sep"/>
+      <div class="field">
+        <label>Corrigir nota</label>
+        <select id="curate-rating">
+          <option value="">— manter —</option>
+          <option value="1" ${c.rating===1?'selected':''}>👍 Boa (1)</option>
+          <option value="0" ${c.rating===0?'selected':''}>😐 Neutra (0)</option>
+          <option value="-1" ${c.rating===-1?'selected':''}>👎 Ruim (-1)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Notas de curadoria</label>
+        <textarea id="curate-notes" rows="3" placeholder="Comentário interno opcional">${escapeHtml(c.notes || '')}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveCuration('${escapeHtml(c.id)}')">Salvar curadoria</button>`;
+    openModal('modal-conv');
+  } catch (e) { errToast(e); }
+}
+async function saveCuration(id) {
+  const ratingVal = document.getElementById('curate-rating').value;
+  const notes = document.getElementById('curate-notes').value;
+  const patch = {};
+  if (ratingVal !== '') patch.rating = parseInt(ratingVal, 10);
+  patch.notes = notes;
+  try {
+    await api('/admin/api/conversations/' + encodeURIComponent(id), { method: 'PATCH', json: patch });
+    toast('Curadoria salva.', 'ok');
+    closeModal('modal-conv');
+    loadConversations();
+  } catch (e) { errToast(e); }
+}
+
+/* ==========================================================================
+   ARQUIVOS / DATASETS
+   ========================================================================== */
+async function loadFiles() {
+  const tbody = document.getElementById('files-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty"><span class="spin"></span></td></tr>';
+  try {
+    const d = await api('/admin/api/files');
+    if (!d.files.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum dataset ainda. Exporte ou suba um arquivo.</td></tr>';
+    } else {
+      tbody.innerHTML = d.files.map(f => `
+        <tr>
+          <td class="mono">${escapeHtml(f.name)}</td>
+          <td>${f.examples}</td>
+          <td class="faint">${fmtBytes(f.size)}</td>
+          <td class="faint">${fmtDate(f.modified_at)}</td>
+          <td class="flex-gap">
+            <button class="btn btn-sm" onclick="previewFile('${escapeHtml(f.name)}')">Prévia</button>
+            <button class="btn btn-sm" onclick="validateFile('${escapeHtml(f.name)}')">Validar</button>
+            <button class="btn btn-sm" onclick="downloadFile('${escapeHtml(f.name)}')">Baixar</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteFile('${escapeHtml(f.name)}')">Excluir</button>
+          </td>
+        </tr>`).join('');
+    }
+    populateTrainFileSelect(d.files);
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">Erro ao carregar.</td></tr>';
+    errToast(e);
+  }
+}
+function downloadFile(name) {
+  const url = apiUrl('/admin/api/files/' + encodeURIComponent(name) + '/download');
+  const a = document.createElement('a');
+  a.href = url;
+  // token via cookie de sessão (setado no login) cobre o download direto
+  a.target = '_blank';
+  a.click();
+}
+async function deleteFile(name) {
+  if (!confirm(`Excluir o arquivo "${name}"?`)) return;
+  try {
+    await api('/admin/api/files/' + encodeURIComponent(name), { method: 'DELETE' });
+    toast('Arquivo excluído.', 'ok');
+    loadFiles();
+  } catch (e) { errToast(e); }
+}
+async function previewFile(name) {
+  try {
+    const d = await api('/admin/api/files/' + encodeURIComponent(name) + '/preview?limit=10');
+    document.getElementById('modal-preview-title').textContent = 'Prévia — ' + name;
+    document.getElementById('modal-preview-body').innerHTML = d.rows.map(r => `
+      <div class="msg-block mono" style="font-size:12px;">${escapeHtml(JSON.stringify(r, null, 2))}</div>`).join('') || '<div class="empty">Sem linhas.</div>';
+    openModal('modal-preview');
+  } catch (e) { errToast(e); }
+}
+async function validateFile(name) {
+  try {
+    const d = await api('/admin/api/files/' + encodeURIComponent(name) + '/validate', { method: 'POST' });
+    document.getElementById('modal-preview-title').textContent = 'Validação — ' + name;
+    document.getElementById('modal-preview-body').innerHTML = `
+      <div class="kv" style="margin-bottom:12px;">
+        <div>Total de linhas</div><div>${d.total}</div>
+        <div>Válidas</div><div class="rating-1">${d.valid}</div>
+        <div>Com problema</div><div class="${d.invalid ? 'rating--1' : ''}">${d.invalid}</div>
+      </div>
+      ${d.problems.length ? `<div class="log-box">${d.problems.map(escapeHtml).join('\n')}</div>` : '<div class="empty">Nenhum problema encontrado.</div>'}`;
+    openModal('modal-preview');
+  } catch (e) { errToast(e); }
+}
+async function exportDataset() {
+  const min_rating = document.getElementById('export-rating').value;
+  const name = document.getElementById('export-name').value.trim() || undefined;
+  try {
+    const d = await api('/admin/api/files/export', { method: 'POST', json: { min_rating: min_rating || undefined, name } });
+    toast('Exportação iniciada.', 'ok');
+    watchTask(d.task_id, 'Exportando dataset', () => loadFiles());
+  } catch (e) { errToast(e); }
+}
+
+const uploadInput = document.getElementById('upload-input');
+const uploadDrop = document.getElementById('upload-drop');
+uploadInput.addEventListener('change', () => { if (uploadInput.files[0]) uploadJsonl(uploadInput.files[0]); });
+['dragover','dragenter'].forEach(ev => uploadDrop.addEventListener(ev, e => { e.preventDefault(); uploadDrop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => uploadDrop.addEventListener(ev, e => { e.preventDefault(); uploadDrop.classList.remove('drag'); }));
+uploadDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) uploadJsonl(f); });
+
+async function uploadJsonl(file) {
+  const statusEl = document.getElementById('upload-status');
+  const overwrite = document.getElementById('upload-overwrite').checked;
+  if (!file.name.endsWith('.jsonl')) { toast('Envie um arquivo .jsonl', 'bad'); return; }
+  statusEl.innerHTML = '<span class="spin"></span> Enviando ' + escapeHtml(file.name) + '…';
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('overwrite', overwrite ? 'true' : 'false');
+  try {
+    const headers = {};
+    if (state.token) headers['x-admin-token'] = state.token;
+    const res = await fetch(apiUrl('/admin/api/files/upload'), { method: 'POST', headers, body: fd });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error((data && data.detail) || res.statusText);
+    statusEl.innerHTML = `<span class="rating-1">✔ ${escapeHtml(data.file.name)} — ${data.file.examples} exemplos (${data.validation.valid} válidos, ${data.validation.invalid} com problema)</span>`;
+    toast('Arquivo enviado.', 'ok');
+    loadFiles();
+  } catch (e) {
+    statusEl.innerHTML = `<span class="rating--1">✘ ${escapeHtml(e.message)}</span>`;
+    errToast(e);
+  } finally {
+    uploadInput.value = '';
+  }
+}
+
+/* ==========================================================================
+   INGESTÃO RAG (texto / imagem) — chama /ingest do main.py
+   ========================================================================== */
+function onIngestTypeChange() {
+  const type = document.getElementById('ingest-type').value;
+  const fileZone = document.getElementById('ingest-file-zone');
+  const textLabel = document.getElementById('ingest-text-label');
+  const imgPreview = document.getElementById('ingest-img-preview');
+  imgPreview.style.display = 'none';
+  imgPreview.src = '';
+  if (type === 'text') {
+    fileZone.style.display = 'none';
+    textLabel.textContent = 'Texto a indexar';
+  } else if (type === 'file') {
+    fileZone.style.display = 'block';
+    textLabel.textContent = 'Texto extraído do arquivo (editável)';
+  } else {
+    fileZone.style.display = 'block';
+    textLabel.textContent = 'Texto a indexar (obrigatório — não há OCR automático)';
+  }
+}
+const ingestDrop = document.getElementById('ingest-drop');
+const ingestFileInput = document.getElementById('ingest-file-input');
+ingestDrop.addEventListener('click', () => ingestFileInput.click());
+['dragover','dragenter'].forEach(ev => ingestDrop.addEventListener(ev, e => { e.preventDefault(); ingestDrop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => ingestDrop.addEventListener(ev, e => { e.preventDefault(); ingestDrop.classList.remove('drag'); }));
+ingestDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) { ingestFileInput.files = e.dataTransfer.files; handleIngestFile(f); } });
+ingestFileInput.addEventListener('change', () => { if (ingestFileInput.files[0]) handleIngestFile(ingestFileInput.files[0]); });
+
+function handleIngestFile(file) {
+  const type = document.getElementById('ingest-type').value;
+  const titleInput = document.getElementById('ingest-title');
+  if (!titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
+  if (type === 'file') {
+    const reader = new FileReader();
+    reader.onload = () => { document.getElementById('ingest-text').value = reader.result; };
+    reader.onerror = () => toast('Não foi possível ler o arquivo como texto.', 'bad');
+    reader.readAsText(file);
+  } else if (type === 'image') {
+    if (!file.type.startsWith('image/')) { toast('Selecione um arquivo de imagem.', 'bad'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = document.getElementById('ingest-img-preview');
+      img.src = reader.result;
+      img.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    toast('Imagem carregada. Cole o texto correspondente antes de indexar.', '');
+  }
+}
+
+async function submitIngest() {
+  const title = document.getElementById('ingest-title').value.trim();
+  const text = document.getElementById('ingest-text').value.trim();
+  const metaRaw = document.getElementById('ingest-meta').value.trim();
+  const type = document.getElementById('ingest-type').value;
+  const statusEl = document.getElementById('ingest-status');
+
+  if (!title) { toast('Informe um título.', 'bad'); return; }
+  if (!text) { toast(type === 'image' ? 'Cole o texto extraído da imagem — não há OCR automático.' : 'Informe o texto a indexar.', 'bad'); return; }
+
+  let metadata = {};
+  if (metaRaw) {
+    try { metadata = JSON.parse(metaRaw); }
+    catch { toast('Metadados inválidos: precisa ser um JSON válido.', 'bad'); return; }
+  }
+  if (type === 'image' && ingestFileInput.files[0]) {
+    metadata.source_filename = ingestFileInput.files[0].name;
+    metadata.source_type = 'image';
+  } else if (type === 'file' && ingestFileInput.files[0]) {
+    metadata.source_filename = ingestFileInput.files[0].name;
+    metadata.source_type = 'file';
+  }
+
+  statusEl.innerHTML = '<span class="spin"></span> Gerando embedding e indexando…';
+  try {
+    const d = await api('/ingest', { method: 'POST', json: { title, text, metadata } });
+    statusEl.innerHTML = `<span class="rating-1">✔ Indexado com sucesso. doc_id: <span class="mono">${escapeHtml(d.doc_id)}</span></span>`;
+    toast('Documento indexado na base de conhecimento.', 'ok');
+    document.getElementById('ingest-title').value = '';
+    document.getElementById('ingest-text').value = '';
+    document.getElementById('ingest-meta').value = '';
+    document.getElementById('ingest-img-preview').style.display = 'none';
+    ingestFileInput.value = '';
+  } catch (e) {
+    statusEl.innerHTML = `<span class="rating--1">✘ ${escapeHtml(e.message)}</span>`;
+    errToast(e);
+  }
+}
+
+/* ==========================================================================
+   TREINOS
+   ========================================================================== */
+async function loadTrainingView() {
+  await Promise.all([loadTrainDefaults(), loadFiles(), loadJobs()]);
+}
+async function loadTrainDefaults() {
+  try {
+    const d = await api('/admin/api/training/defaults');
+    document.getElementById('train-basemodel').value = d.base_model;
+    document.getElementById('train-basemodel').placeholder = d.base_model;
+    document.getElementById('train-epochs').value = d.n_epochs;
+    document.getElementById('train-suffix').value = d.suffix;
+  } catch (e) { errToast(e); }
+}
+function populateTrainFileSelect(files) {
+  const sel = document.getElementById('train-file');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = files.map(f => `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${f.examples} ex.)</option>`).join('') || '<option value="">Nenhum arquivo disponível</option>';
+  if (current && files.some(f => f.name === current)) sel.value = current;
+}
+async function startTraining() {
+  const file = document.getElementById('train-file').value;
+  if (!file) { toast('Escolha um arquivo de treino.', 'bad'); return; }
+  const body = {
+    file,
+    base_model: document.getElementById('train-basemodel').value.trim() || undefined,
+    n_epochs: parseInt(document.getElementById('train-epochs').value, 10) || 3,
+    suffix: document.getElementById('train-suffix').value.trim() || undefined,
+    learning_rate: document.getElementById('train-lr').value.trim() || undefined,
+    batch_size: document.getElementById('train-batch').value.trim() || undefined,
+    ignore_invalid: document.getElementById('train-ignore-invalid').checked,
+  };
+  const statusEl = document.getElementById('train-status');
+  statusEl.innerHTML = '<span class="spin"></span> Iniciando…';
+  try {
+    const d = await api('/admin/api/training/start', { method: 'POST', json: body });
+    statusEl.textContent = '';
+    toast('Treino iniciado.', 'ok');
+    watchTask(d.task_id, 'Treinamento', () => loadJobs());
+  } catch (e) {
+    statusEl.textContent = '';
+    errToast(e);
+  }
+}
+async function loadJobs() {
+  const tbody = document.getElementById('jobs-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
+  try {
+    const d = await api('/admin/api/training/jobs?limit=25');
+    if (!d.jobs.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum job encontrado.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.jobs.map(j => `
+      <tr>
+        <td class="mono clip">${escapeHtml(j.id)}</td>
+        <td class="faint clip">${escapeHtml(j.model || '—')}</td>
+        <td class="mono clip">${escapeHtml(j.output_name || '—')}</td>
+        <td>${jobStatusBadge(j.status)}</td>
+        <td class="faint">${fmtDate(j.created_at)}</td>
+        <td class="flex-gap">
+          <button class="btn btn-sm" onclick="openJob('${escapeHtml(j.id)}')">Detalhes</button>
+          ${isRunningStatus(j.status) ? `<button class="btn btn-sm btn-danger" onclick="cancelJob('${escapeHtml(j.id)}')">Cancelar</button>` : ''}
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar jobs (verifique TOGETHER_API_KEY).</td></tr>';
+  }
+}
+function isRunningStatus(s) { return ['pending','queued','running','training'].includes((s||'').toLowerCase()); }
+function jobStatusBadge(status) {
+  const s = (status || '').toLowerCase();
+  let cls = 'badge-neutral';
+  if (['completed','succeeded'].includes(s)) cls = 'badge-ok';
+  else if (['failed','error','cancelled','canceled'].includes(s)) cls = 'badge-bad';
+  else if (isRunningStatus(s)) cls = 'badge-warn';
+  return `<span class="pill ${cls}">${escapeHtml(status || '—')}</span>`;
+}
+async function openJob(id) {
+  try {
+    const d = await api('/admin/api/training/jobs/' + encodeURIComponent(id));
+    const events = (d._events || []).map(e => `${e.created_at || ''}  ${e.message || e.type || JSON.stringify(e)}`).join('\n');
+    document.getElementById('modal-job-body').innerHTML = `
+      <div class="kv" style="margin-bottom:12px;">
+        <div>ID</div><div class="mono">${escapeHtml(d.id || id)}</div>
+        <div>Status</div><div>${jobStatusBadge(d.status)}</div>
+        <div>Modelo base</div><div class="mono">${escapeHtml(d.model || '—')}</div>
+        <div>Saída</div><div class="mono">${escapeHtml(d.output_name || '—')}</div>
+        <div>Épocas</div><div>${d.n_epochs ?? '—'}</div>
+      </div>
+      <h3>Eventos</h3>
+      <div class="log-box">${escapeHtml(events) || 'Sem eventos.'}</div>`;
+    openModal('modal-job');
+  } catch (e) { errToast(e); }
+}
+async function cancelJob(id) {
+  if (!confirm('Cancelar este job de treino?')) return;
+  try {
+    await api('/admin/api/training/jobs/' + encodeURIComponent(id) + '/cancel', { method: 'POST' });
+    toast('Job cancelado.', 'ok');
+    loadJobs();
+  } catch (e) { errToast(e); }
+}
+
+/* ==========================================================================
+   MODELOS
+   ========================================================================== */
+async function loadModels() {
+  const tbody = document.getElementById('models-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty"><span class="spin"></span></td></tr>';
+  try {
+    const d = await api('/admin/api/models');
+    document.getElementById('active-model-name').textContent = d.active || '— nenhum publicado —';
+    if (!d.models.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">Nenhum modelo treinado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.models.map(m => `
+      <tr>
+        <td class="mono clip">${escapeHtml(m.name)}${m.name === d.active ? ' <span class="pill badge-ok" style="margin-left:6px;">ativo</span>' : ''}</td>
+        <td class="faint clip">${escapeHtml(m.base_model || '—')}</td>
+        <td class="faint">${fmtDate(m.created_at)}</td>
+        <td class="flex-gap">
+          <button class="btn btn-sm" onclick="sanityCheck('${escapeHtml(m.name)}')">Testar</button>
+          <button class="btn btn-sm btn-good" onclick="publishModel('${escapeHtml(m.name)}')">Publicar</button>
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">Erro ao carregar (verifique TOGETHER_API_KEY).</td></tr>';
+  }
+}
+async function sanityCheck(model) {
+  try {
+    const d = await api('/admin/api/models/sanity-check', { method: 'POST', json: { model } });
+    toast('Teste de sanidade iniciado.', 'ok');
+    watchTask(d.task_id, 'Sanity check — ' + model);
+  } catch (e) { errToast(e); }
+}
+async function publishModel(model) {
+  if (!confirm(`Publicar "${model}" como modelo em produção?\n\nLembre-se: isto grava em model_config, mas o main.py só troca de modelo de fato se ele ler essa tabela em runtime.`)) return;
+  try {
+    const d = await api('/admin/api/models/publish', { method: 'POST', json: { model } });
+    toast(`Publicado: ${d.active_model}`, 'ok');
+    loadModels();
+    loadOverview();
+  } catch (e) { errToast(e); }
+}
+
+/* ==========================================================================
+   PIPELINE
+   ========================================================================== */
+async function runPipeline() {
+  const body = {
+    dry_run: document.getElementById('pl-dry-run').checked,
+    min_new_examples: parseInt(document.getElementById('pl-min-new').value, 10) || 50,
+    min_rating: document.getElementById('pl-min-rating').value || undefined,
+    poll_interval: parseInt(document.getElementById('pl-poll-interval').value, 10) || 60,
+    poll_timeout: parseInt(document.getElementById('pl-poll-timeout').value, 10) || 3600,
+    suffix: document.getElementById('pl-suffix').value.trim() || undefined,
+  };
+  try {
+    const d = await api('/admin/api/pipeline/run', { method: 'POST', json: body });
+    toast('Ciclo do pipeline iniciado.', 'ok');
+    document.getElementById('pipeline-task-card').style.display = 'block';
+    document.getElementById('pipeline-log').textContent = '';
+    document.getElementById('pipeline-task-status').textContent = 'running';
+    document.getElementById('pipeline-task-status').className = 'pill badge-warn';
+    pollPipelineTask(d.task_id);
+  } catch (e) { errToast(e); }
+}
+async function pollPipelineTask(taskId) {
+  let since = 0;
+  const logEl = document.getElementById('pipeline-log');
+  const statusEl = document.getElementById('pipeline-task-status');
+  const tick = async () => {
+    try {
+      const snap = await api(`/admin/api/tasks/${taskId}?since=${since}`);
+      if (snap.lines.length) {
+        logEl.textContent += snap.lines.join('\n') + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+        since = snap.total_lines;
+      }
+      if (snap.status === 'running') {
+        setTimeout(tick, 1500);
+      } else {
+        statusEl.textContent = snap.status;
+        statusEl.className = 'pill ' + (snap.status === 'success' ? 'badge-ok' : 'badge-bad');
+        toast(snap.status === 'success' ? 'Pipeline concluído.' : 'Pipeline terminou com erro.', snap.status === 'success' ? 'ok' : 'bad');
+        loadOverview(); loadHistory();
+      }
+    } catch (e) { /* silencioso durante polling */ }
+  };
+  tick();
+}
+
+/* ==========================================================================
+   Tarefa genérica (export, treino, sanity check) — modal com log
+   ========================================================================== */
+function watchTask(taskId, title, onDone) {
+  document.getElementById('modal-task-title').textContent = title;
+  const logEl = document.getElementById('modal-task-log');
+  logEl.textContent = '';
+  openModal('modal-task');
+  let since = 0;
+  const tick = async () => {
+    try {
+      const snap = await api(`/admin/api/tasks/${taskId}?since=${since}`);
+      if (snap.lines.length) {
+        logEl.textContent += snap.lines.join('\n') + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+        since = snap.total_lines;
+      }
+      if (snap.status === 'running') {
+        setTimeout(tick, 1200);
+      } else {
+        document.getElementById('modal-task-title').textContent = title + ' — ' + (snap.status === 'success' ? '✔ concluído' : '✘ erro');
+        toast(title + ': ' + snap.status, snap.status === 'success' ? 'ok' : 'bad');
+        if (onDone) onDone(snap);
+      }
+    } catch (e) { /* silencioso */ }
+  };
+  tick();
+}
+
+/* ==========================================================================
+   HISTÓRICO
+   ========================================================================== */
+async function loadHistory() {
+  const tbody = document.getElementById('history-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
+  try {
+    const d = await api('/admin/api/models/history?limit=50');
+    if (!d.table_exists) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">Tabela training_runs não encontrada. ${escapeHtml(d.detail || '')}</td></tr>`;
+      return;
+    }
+    if (!d.runs.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum ciclo registrado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.runs.map(r => `
+      <tr>
+        <td class="faint">${fmtDate(r.started_at)}</td>
+        <td class="faint">${fmtDate(r.finished_at)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.examples_count ?? '—'}</td>
+        <td class="mono clip">${escapeHtml(r.model_id || '—')}</td>
+        <td class="faint clip">${escapeHtml(r.notes || '')}</td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar histórico.</td></tr>';
+  }
+}
+
+/* ==========================================================================
+   CONFIGURAÇÃO
+   ========================================================================== */
+async function loadConfig() {
+  const box = document.getElementById('config-kv');
+  box.innerHTML = '<div class="empty" style="grid-column:1/-1;"><span class="spin"></span></div>';
+  try {
+    const d = await api('/admin/api/config');
+    const rows = [
+      ['Supabase URL', d.supabase_url || '—'],
+      ['Supabase key', d.supabase_key || '—'],
+      ['Together key', d.together_key || '—'],
+      ['Pasta de datasets', d.datasets_dir],
+      ['Modelo base', d.base_model],
+      ['Mín. exemplos novos', d.min_new_examples],
+      ['Nota mínima', d.min_rating || '—'],
+      ['Intervalo de polling', d.poll_interval + 's'],
+      ['Timeout de polling', d.poll_timeout + 's'],
+      ['Cache do modelo (TTL)', d.model_cache_ttl + 's'],
+      ['Upload máximo', d.max_upload_mb + ' MB'],
+    ];
+    box.innerHTML = rows.map(([k, v]) => `<div>${k}</div><div class="mono">${escapeHtml(String(v))}</div>`).join('');
+  } catch (e) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1;">Erro ao carregar configuração.</div>';
+  }
+}
+
+/* ==========================================================================
+   Boot
+   ========================================================================== */
+document.getElementById('login-token').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+(async function boot() {
+  if (state.token) {
+    document.getElementById('login-token').value = state.token;
+    document.getElementById('login-base').value = state.base;
+    try {
+      await api('/admin/api/health');
+      // token pode ainda estar inválido; primeira chamada autenticada confirma
+      await api('/admin/api/config');
+      enterApp();
+    } catch (e) {
+      showLogin();
+    }
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>

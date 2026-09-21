@@ -1,0 +1,49 @@
+# .env.example
+# ============
+# Copie este arquivo para ".env" e preencha com os seus valores reais.
+# NUNCA suba o arquivo ".env" (com valores reais) para o GitHub.
+#
+#   cp .env.example .env
+#
+# --- Together AI ---------------------------------------------------------
+TOGETHER_API_KEY=
+TOGETHER_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo
+TOGETHER_EMBED_MODEL=togethercomputer/m2-bert-80M-8k-retrieval
+
+# --- Supabase --------------------------------------------------------------
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+
+# --- Qdrant ------------------------------------------------------------------
+QDRANT_URL=
+QDRANT_API_KEY=
+QDRANT_COLLECTION=documentos
+QDRANT_VECTOR_SIZE=768
+QDRANT_SCORE_THRESHOLD=0.55
+
+# --- Telegram (opcional, só se for usar o bot) ------------------------------
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+APP_PUBLIC_URL=
+
+# --- Modelo ativo / hot-swap -------------------------------------------------
+# Tempo (segundos) que o main.py mantém o modelo ativo em cache antes de
+# consultar de novo a tabela model_config no Supabase.
+MODEL_CACHE_TTL_SECONDS=300
+
+# --- Pipeline de aprendizado contínuo ---------------------------------------
+# Mínimo de conversas novas para justificar um novo treino.
+AUTO_FT_MIN_NEW_EXAMPLES=50
+# Filtra o dataset só por conversas com feedback >= este valor (-1, 0 ou 1).
+# Deixe vazio para não filtrar por rating.
+AUTO_FT_MIN_RATING=
+# Intervalo entre checagens de status do job de treino (segundos).
+AUTO_FT_POLL_INTERVAL_SECONDS=60
+# Tempo máximo de espera pelo treino antes de desistir (segundos). 3600 = 1h.
+AUTO_FT_POLL_TIMEOUT_SECONDS=3600
+
+# --- System prompt usado nos exemplos de fine-tuning ------------------------
+FT_SYSTEM_PROMPT=Você é um assistente simpático, natural e conversacional.
+
+# --- Porta local (opcional, usado só em "python main.py") ------------------
+PORT=8000

@@ -1,0 +1,21 @@
+# .gitignore
+
+# Segredos — NUNCA suba isso pro GitHub
+.env
+
+# Datasets gerados localmente pelos scripts de fine-tuning
+dataset*.jsonl
+teste.jsonl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
