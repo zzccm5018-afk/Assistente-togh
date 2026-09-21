@@ -1,0 +1,28 @@
+# requirements.txt
+# ================
+# Instala tudo que main.py, finetune_export.py e auto_learning_pipeline.py precisam.
+#
+# Uso:
+#   pip install -r requirements.txt
+#
+# Recomendado usar um ambiente virtual antes:
+#   python -m venv venv
+#   source venv/bin/activate      # Linux/Mac
+#   venv\Scripts\activate         # Windows
+#   pip install -r requirements.txt
+
+# --- Backend (main.py) ------------------------------------------------------
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-dotenv>=1.0
+httpx>=0.27
+pydantic>=2.6
+
+# --- Integrações ------------------------------------------------------------
+supabase>=2.4
+qdrant-client>=1.9
+google-genai>=0.1.0   # SDK oficial da Gemini API
+
+# --- Utilidades -------------------------------------------------------------
+loguru>=0.7.2         # logging avançado (opcional, mas útil)
+
