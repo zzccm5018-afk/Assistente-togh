@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do assistente RAG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF2EE; --surface:#FAFBF9; --sunken:#E5EAE5;
+  --ink:#152628; --ink-2:#4C6164; --line:#D0D9D3;
+  --deep:#0D3536; --deep-2:#154A4B; --deep-ink:#D7E6E2; --deep-mute:#8FB1AB;
+  --teal:#17645F; --teal-ink:#FFFFFF; --teal-soft:#D5E8E4;
+  --amber:#E2A11B; --amber-soft:#F6E3B5;
+  --ok:#1E7F55; --ok-bg:#DDF0E6;
+  --warn:#8A5A0A; --warn-bg:#F8EACB;
+  --bad:#B0372B; --bad-bg:#F6DDD9;
+  --chunk-a:#BFD9D3; --chunk-b:#8FBDB4;
+  --radius:8px;
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0E1819; --surface:#152224; --sunken:#0B1314;
+    --ink:#E2EBE9; --ink-2:#98ADAD; --line:#27393B;
+    --deep:#081F20; --deep-2:#103032; --deep-ink:#D7E6E2; --deep-mute:#7FA39D;
+    --teal:#3AA79D; --teal-ink:#06201F; --teal-soft:#173835;
+    --amber:#E9B13A; --amber-soft:#3A2E10;
+    --ok:#4CC28B; --ok-bg:#12352A;
+    --warn:#E6B65A; --warn-bg:#382A0E;
+    --bad:#F08074; --bad-bg:#3A1A17;
+    --chunk-a:#1F4A47; --chunk-b:#2E6E68;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--font-ui)}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+h1{font-size:28px}
+h2{font-size:18px}
+h3{font-size:15px}
+p{margin:0}
+code,.mono{font-family:var(--font-mono);font-size:.9em}
+code{background:var(--sunken);padding:1px 5px;border-radius:4px}
+a{color:var(--teal)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Layout ---------- */
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{background:var(--deep);color:var(--deep-ink);padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand svg{flex:none}
+.brand b{font:700 18px/1 var(--font-display);letter-spacing:-.01em;color:#fff}
+.brand small{display:block;font-size:12px;color:var(--deep-mute);margin-top:3px;font-weight:400;font-family:var(--font-ui)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:6px;color:var(--deep-ink);text-decoration:none;font-weight:500}
+.nav a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.nav a:hover{background:var(--deep-2)}
+.nav a[aria-current="page"]{background:var(--deep-2);box-shadow:inset 3px 0 0 var(--amber);color:#fff}
+.side-foot{margin-top:auto;padding:0 8px;font-size:12.5px;color:var(--deep-mute);word-break:break-all}
+.main{min-width:0}
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 28px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;justify-content:flex-end}
+.content{padding:30px 28px 80px;max-width:1180px}
+.page-head{margin-bottom:24px;max-width:70ch}
+.page-head p{color:var(--ink-2);margin-top:8px}
+
+/* ---------- Pills, badges ---------- */
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 8px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-size:13px;color:var(--ink-2);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-2);flex:none}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--amber)}
+.badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12.5px;font-weight:500;background:var(--sunken);color:var(--ink-2)}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+
+/* ---------- Forms ---------- */
+fieldset.plain{border:0;padding:0;margin:0;min-width:0}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.field>label,.lbl{font-weight:600;font-size:14px}
+.hint{font-size:13px;color:var(--ink-2)}
+input[type=text],input[type=number],input[type=url],input[type=password],select,textarea{
+  width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+textarea{resize:vertical;min-height:90px;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);outline:2px solid color-mix(in srgb,var(--teal) 35%,transparent);outline-offset:0}
+input:disabled,textarea:disabled,select:disabled{opacity:.6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:14px}
+.check input{margin-top:4px;accent-color:var(--teal)}
+.btn{font:600 14px/1 var(--font-ui);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:6px;border:1px solid var(--teal);background:var(--teal);color:var(--teal-ink);cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.secondary{background:transparent;color:var(--teal);border-color:var(--line)}
+.btn.secondary:hover{border-color:var(--teal);filter:none}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.bad{background:transparent;color:var(--bad);border-color:var(--line)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* ---------- Panels ---------- */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.panel+.panel{margin-top:20px}
+.panel>h2{margin-bottom:6px}
+.panel>.lead{color:var(--ink-2);margin-bottom:16px;max-width:70ch}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:24px;align-items:start}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;font-weight:500;word-break:break-word}
+.empty{border:1px dashed var(--line);border-radius:var(--radius);padding:26px;color:var(--ink-2);text-align:center}
+.note{border-left:3px solid var(--amber);background:var(--amber-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px;margin-bottom:16px}
+.note.bad{border-color:var(--bad);background:var(--bad-bg)}
+.jsonbox{background:var(--sunken);border:1px solid var(--line);border-radius:6px;padding:12px;font:13px/1.5 var(--font-mono);white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;margin-top:14px}
+
+/* ---------- Ingestão ---------- */
+.drop{border:1.5px dashed var(--line);border-radius:var(--radius);padding:18px;text-align:center;color:var(--ink-2);cursor:pointer;margin-bottom:12px;background:var(--surface)}
+.drop:hover,.drop.over{border-color:var(--teal);color:var(--ink);background:var(--teal-soft)}
+.filelist{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:6px}
+.filelist li{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--sunken);border-radius:6px;padding:6px 10px;font-size:14px}
+.filelist button{background:none;border:0;color:var(--bad);cursor:pointer;font:600 13px var(--font-ui)}
+details.opts{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--surface)}
+details.opts summary{cursor:pointer;font-weight:600}
+details.opts[open] summary{margin-bottom:14px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--ink-2);margin-bottom:12px}
+.stats b{color:var(--ink);font-weight:600}
+.ribbon{display:flex;gap:2px;height:38px;border-radius:5px;overflow:hidden;margin-bottom:6px}
+.ribbon button{flex:1 1 0;min-width:6px;border:0;padding:0;background:var(--chunk-a);cursor:pointer}
+.ribbon button:nth-child(even){background:var(--chunk-b)}
+.ribbon button.sent{background:var(--ok)}
+.ribbon button.failed{background:var(--bad)}
+.ribbon button:hover{outline:2px solid var(--amber);outline-offset:-2px}
+.chunks{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.chunks details{border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.chunks summary{padding:8px 12px;cursor:pointer;display:flex;gap:10px;justify-content:space-between;font-size:14px}
+.chunks summary span:first-child{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chunks summary span:last-child{color:var(--ink-2);flex:none}
+.chunks pre{margin:0;padding:10px 12px;border-top:1px solid var(--line);white-space:pre-wrap;word-break:break-word;font:13px/1.55 var(--font-ui);max-height:220px;overflow:auto}
+.progress{height:8px;background:var(--sunken);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.progress>i{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
+.log{list-style:none;margin:10px 0 0;padding:0;max-height:220px;overflow:auto;font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.log li{display:flex;gap:8px}
+.log .ok{color:var(--ok)} .log .bad{color:var(--bad)}
+
+/* ---------- Chat ---------- */
+.chatbar{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px}
+.chatbar .field{margin:0}
+.transcript{display:flex;flex-direction:column;gap:14px;min-height:220px;max-height:58vh;overflow:auto;padding:4px 2px 12px}
+.msg{max-width:min(78ch,92%);border-radius:10px;padding:11px 14px;white-space:pre-wrap;word-break:break-word}
+.msg.user{align-self:flex-end;background:var(--teal);color:var(--teal-ink)}
+.msg.bot{align-self:flex-start;background:var(--sunken);border:1px solid var(--line)}
+.msg.err{align-self:flex-start;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.msg .meta{margin-top:10px;font-size:12.5px;color:var(--ink-2);white-space:normal;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.src{margin-top:10px;white-space:normal}
+.src summary{cursor:pointer;font-size:13.5px;color:var(--teal);font-weight:500}
+.src ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.src li{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13.5px}
+.src li.low{opacity:.65}
+.src li p{margin-top:5px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.fb{margin-top:10px;white-space:normal;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{background:var(--surface);border:0;padding:5px 11px;font:500 13px var(--font-ui);color:var(--ink);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink)}
+.fb input{width:auto;flex:1 1 160px;padding:5px 9px;font-size:13px}
+.composer{display:flex;gap:10px;align-items:flex-end;border-top:1px solid var(--line);padding-top:14px;margin-top:8px}
+.composer textarea{min-height:46px;max-height:160px}
+
+/* ---------- Conversas ---------- */
+.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end;margin-bottom:16px}
+.filters .field{margin:0}
+.counts{display:flex;flex-wrap:wrap;gap:8px 24px;margin:0 0 14px;font-size:14px;color:var(--ink-2)}
+.counts b{color:var(--ink);font-size:20px;font-family:var(--font-display);margin-right:5px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:760px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;background:var(--sunken);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:color-mix(in srgb,var(--teal-soft) 45%,transparent)}
+td .clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+tr.open td .clamp{-webkit-line-clamp:unset;display:block}
+td.nowrap{white-space:nowrap}
+
+/* ---------- Toasts e diálogo ---------- */
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:50;max-width:min(380px,calc(100vw - 36px))}
+.toast{background:var(--deep);color:#fff;padding:11px 14px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14px;border-left:4px solid var(--amber)}
+.toast.ok{border-color:var(--ok)} .toast.bad{border-color:var(--bad)}
+dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--ink);padding:22px;max-width:440px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(5,20,21,.55)}
+dialog p{margin:8px 0 18px;color:var(--ink-2)}
+dialog .actions{justify-content:flex-end}
+
+/* ---------- Responsivo ---------- */
+@media (max-width:1020px){ .split{grid-template-columns:1fr} }
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;overflow-x:auto}
+  .brand small,.side-foot{display:none}
+  .nav{flex-direction:row;gap:2px}
+  .nav a{white-space:nowrap;padding:8px 10px}
+  .topbar{padding:10px 16px;justify-content:flex-start}
+  .content{padding:22px 16px 70px}
+  .chatbar,.filters{grid-template-columns:1fr 1fr}
+  .grid2,.grid3{grid-template-columns:1fr}
+}
+@media (max-width:480px){ .chatbar,.filters{grid-template-columns:1fr} h1{font-size:24px} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;scroll-behavior:auto!important} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="4" width="24" height="5" rx="1.5" fill="#E2A11B"/><rect x="3" y="12" width="17" height="5" rx="1.5" fill="#8FBDB4"/><rect x="3" y="20" width="21" height="5" rx="1.5" fill="#BFD9D3"/></svg>
+      <div><b>Painel RAG</b><small>Administração do assistente</small></div>
+    </div>
+    <nav class="nav" aria-label="Seções">
+      <a href="#ingest" data-view="ingest"><svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Alimentar base</a>
+      <a href="#chat" data-view="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Testar chat</a>
+      <a href="#logs" data-view="logs"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Conversas e feedback</a>
+      <a href="#model" data-view="model"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Modelo</a>
+      <a href="#telegram" data-view="telegram"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Telegram</a>
+      <a href="#connection" data-view="connection"><svg viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0V8zM12 18v3"/></svg>Conexão</a>
+    </nav>
+    <div class="side-foot" id="sideHost"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="pill" id="pApi" title="Resposta de GET /health"><i class="dot"></i><span>Sem verificar</span></span>
+      <span class="pill" id="pTogether" title="Variáveis TOGETHER_* configuradas no servidor"><i class="dot"></i>Together AI</span>
+      <span class="pill" id="pSupabase" title="Variáveis SUPABASE_* configuradas no servidor"><i class="dot"></i>Supabase</span>
+      <span class="pill" id="pQdrant" title="QDRANT_URL configurada no servidor"><i class="dot"></i>Qdrant</span>
+      <span class="pill" id="pModel" title="Modelo usado agora pelo servidor"><i class="dot"></i><span class="mono">—</span></span>
+      <button class="btn secondary small" id="btnRefresh" type="button">Verificar agora</button>
+    </div>
+
+    <main class="content">
+
+      <!-- ============ ALIMENTAR BASE (POST /ingest) ============ -->
+      <section id="view-ingest" hidden>
+        <header class="page-head">
+          <h1>Alimentar a base de conhecimento</h1>
+          <p>Cole um texto ou solte arquivos de texto. O painel divide o conteúdo em trechos e envia cada um para <code>POST /ingest</code>, que gera o embedding e grava no Qdrant.</p>
+        </header>
+
+        <div class="split">
+          <div>
+            <fieldset class="plain" id="ingForm">
+              <div class="field">
+                <label for="ingTitle">Título</label>
+                <input type="text" id="ingTitle" placeholder="Ex.: Política de férias 2026" autocomplete="off">
+                <span class="hint">Aparece como fonte na resposta do assistente. Com vários trechos vira “Título (2/5)”.</span>
+              </div>
+              <div class="field">
+                <label for="ingText">Texto</label>
+                <textarea id="ingText" rows="12" placeholder="Cole aqui o conteúdo que o assistente deve conhecer."></textarea>
+                <span class="hint" id="ingCount">0 caracteres</span>
+              </div>
+
+              <div class="drop" id="ingDrop" tabindex="0" role="button" aria-label="Escolher arquivos de texto">
+                Solte arquivos <b>.txt, .md, .csv ou .json</b> aqui, ou clique para escolher
+                <input type="file" id="ingFiles" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.log,text/plain">
+              </div>
+              <ul class="filelist" id="ingFileList"></ul>
+
+              <details class="opts" open>
+                <summary>Divisão em trechos e metadados</summary>
+                <label class="check" style="margin-bottom:14px">
+                  <input type="checkbox" id="ingChunkOn" checked>
+                  <span><b>Dividir em trechos</b><br><span class="hint">Recomendado. Um texto grande num único vetor deixa a busca imprecisa.</span></span>
+                </label>
+                <div class="grid2">
+                  <div class="field"><label for="ingSize">Tamanho do trecho (caracteres)</label><input type="number" id="ingSize" value="2000" min="200" max="8000" step="100"></div>
+                  <div class="field"><label for="ingOverlap">Sobreposição (caracteres)</label><input type="number" id="ingOverlap" value="200" min="0" max="2000" step="50"></div>
+                </div>
+                <div class="field">
+                  <label for="ingDocId">doc_id (opcional)</label>
+                  <input type="text" id="ingDocId" class="mono" placeholder="UUID, ex.: 3f2b8c1e-…" autocomplete="off">
+                  <span class="hint">O Qdrant só aceita UUID ou inteiro. Só vale quando o texto vira um único trecho; caso contrário cada trecho recebe um id novo.</span>
+                </div>
+                <div class="field" style="margin-bottom:0">
+                  <label for="ingMeta">Metadados (JSON, opcional)</label>
+                  <textarea id="ingMeta" class="mono" rows="3" placeholder='{"categoria": "rh", "idioma": "pt"}'></textarea>
+                  <span class="hint">Vão no payload de cada trecho. As chaves <code>text</code>, <code>title</code> e <code>doc_id</code> são reservadas.</span>
+                </div>
+              </details>
+            </fieldset>
+          </div>
+
+          <div>
+            <div class="panel">
+              <h2>Como será enviado</h2>
+              <p class="lead" style="margin-bottom:12px">Cada bloco da faixa é um trecho. Clique num bloco para ler o conteúdo.</p>
+              <div id="ingWarn"></div>
+              <div id="ingPreview"></div>
+
+              <div class="actions" style="margin-top:16px">
+                <button class="btn" type="button" id="btnIngSend" disabled>Enviar trechos</button>
+                <button class="btn secondary" type="button" id="btnIngRetry" hidden>Reenviar falhas</button>
+                <button class="btn secondary" type="button" id="btnIngCancel" hidden>Cancelar envio</button>
+                <button class="btn secondary" type="button" id="btnIngClear">Limpar tudo</button>
+              </div>
+              <div class="progress" id="ingProgressWrap" hidden><i id="ingProgress"></i></div>
+              <div class="hint" id="ingProgressText" aria-live="polite"></div>
+              <ul class="log" id="ingLog"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TESTAR CHAT (POST /chat + /feedback) ============ -->
+      <section id="view-chat" hidden>
+        <header class="page-head">
+          <h1>Testar o chat</h1>
+          <p>Envia a mensagem para <code>POST /chat</code>, o mesmo pipeline usado pelo site e pelo Telegram. Cada teste é gravado em <code>conversations</code>.</p>
+        </header>
+        <div class="panel">
+          <div class="chatbar">
+            <div class="field"><label for="chatUser">user_id</label><input type="text" id="chatUser" value="admin-teste" autocomplete="off"></div>
+            <div class="field"><label for="chatChannel">Canal</label><select id="chatChannel"><option value="web">web</option><option value="telegram">telegram</option></select></div>
+            <div class="field"><label for="chatTopK">Trechos (top_k)</label><input type="number" id="chatTopK" value="5" min="1" max="20"></div>
+            <button class="btn secondary" type="button" id="btnChatClear">Limpar</button>
+          </div>
+          <div class="note">O backend envia só a mensagem atual ao modelo, sem o histórico. Cada pergunta é independente das anteriores.</div>
+          <div class="transcript" id="transcript" aria-live="polite">
+            <div class="empty" id="chatEmpty">Escreva uma pergunta ou uma saudação para ver a resposta, os trechos recuperados e os scores.</div>
+          </div>
+          <div class="composer">
+            <textarea id="chatInput" rows="1" placeholder="Escreva uma mensagem (Enter envia, Shift+Enter quebra a linha)"></textarea>
+            <button class="btn" type="button" id="btnChatSend">Enviar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CONVERSAS E FEEDBACK ============ -->
+      <section id="view-logs" hidden>
+        <header class="page-head">
+          <h1>Conversas e feedback</h1>
+          <p>Revise o que o assistente respondeu, avalie as respostas e exporte as boas conversas como dataset de fine-tuning.</p>
+        </header>
+
+        <div class="panel">
+          <h2>Enviar feedback manual</h2>
+          <p class="lead">Grava uma avaliação em <code>POST /feedback</code> para qualquer conversa, pelo id.</p>
+          <div class="grid3">
+            <div class="field"><label for="fbId">conversation_id</label><input type="text" id="fbId" class="mono" autocomplete="off"></div>
+            <div class="field"><label for="fbRating">Avaliação</label>
+              <select id="fbRating"><option value="1">Boa (1)</option><option value="0">Neutra (0)</option><option value="-1">Ruim (-1)</option></select></div>
+            <div class="field"><label for="fbComment">Comentário (opcional)</label><input type="text" id="fbComment" autocomplete="off"></div>
+          </div>
+          <button class="btn" type="button" id="btnFbSend">Enviar feedback</button>
+        </div>
+
+        <div class="panel">
+          <h2>Histórico de conversas</h2>
+          <p class="lead">Lê as tabelas <code>conversations</code> e <code>feedback</code> direto do Supabase, com as credenciais da aba Conexão.</p>
+          <div id="logsNoSb" class="empty" hidden>
+            Configure a URL e a chave do Supabase para listar as conversas.<br><br>
+            <a class="btn secondary small" href="#connection" style="text-decoration:none">Abrir Conexão</a>
+          </div>
+          <div id="logsBox" hidden>
+            <div class="filters">
+              <div class="field"><label for="fltRating">Avaliação</label>
+                <select id="fltRating"><option value="all">Todas</option><option value="1">Boas</option><option value="-1">Ruins</option><option value="0">Neutras</option><option value="none">Sem feedback</option></select></div>
+              <div class="field"><label for="fltChannel">Canal</label>
+                <select id="fltChannel"><option value="all">Todos</option><option value="web">web</option><option value="telegram">telegram</option></select></div>
+              <div class="field"><label for="fltSearch">Buscar no texto</label><input type="text" id="fltSearch" autocomplete="off"></div>
+              <div class="field"><label for="fltLimit">Carregar</label>
+                <select id="fltLimit"><option value="50">50 recentes</option><option value="100" selected>100 recentes</option><option value="300">300 recentes</option><option value="1000">1000 recentes</option></select></div>
+              <button class="btn" type="button" id="btnLogsLoad">Carregar</button>
+            </div>
+            <div class="counts" id="logsCounts"></div>
+            <div class="tablewrap" id="logsTableWrap" hidden>
+              <table>
+                <thead><tr><th>Data</th><th>Canal</th><th>Pergunta</th><th>Resposta</th><th>Feedback</th><th>Avaliar</th></tr></thead>
+                <tbody id="logsBody"></tbody>
+              </table>
+            </div>
+            <div class="empty" id="logsEmpty" hidden>Nenhuma conversa com esses filtros.</div>
+
+            <div style="margin-top:22px">
+              <h3>Dataset de fine-tuning</h3>
+              <p class="hint" style="margin:6px 0 12px;max-width:70ch" id="exportHint"></p>
+              <button class="btn secondary" type="button" id="btnExport" disabled>Exportar JSONL (avaliação = 1)</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MODELO (model_config) ============ -->
+      <section id="view-model" hidden>
+        <header class="page-head">
+          <h1>Modelo ativo</h1>
+          <p>O servidor lê a tabela <code>model_config</code> a cada poucos minutos. Trocar o valor aqui muda o modelo em produção sem reiniciar.</p>
+        </header>
+        <div class="panel">
+          <h2>Em uso pelo servidor</h2>
+          <p class="lead">Valor devolvido por <code>GET /health</code>.</p>
+          <dl class="kv"><dt>Modelo</dt><dd class="mono" id="mdlServer">—</dd><dt>Verificado</dt><dd id="mdlServerAt">—</dd></dl>
+          <div class="actions" style="margin-top:14px"><button class="btn secondary" type="button" id="btnMdlCheck">Conferir no servidor</button></div>
+          <div class="hint" id="mdlCheckMsg" style="margin-top:10px"></div>
+        </div>
+        <div class="panel">
+          <h2>Configuração no Supabase</h2>
+          <p class="lead">Lê e atualiza a linha <code>id = 1</code> de <code>model_config</code>. Use o nome do modelo fine-tunado da Together AI quando o pipeline terminar um treino.</p>
+          <div id="mdlNoSb" class="empty" hidden>Configure o Supabase na aba <a href="#connection">Conexão</a> para editar o modelo.</div>
+          <div id="mdlBox" hidden>
+            <dl class="kv" style="margin-bottom:16px"><dt>Salvo no banco</dt><dd class="mono" id="mdlDb">—</dd><dt>Atualizado em</dt><dd id="mdlDbAt">—</dd></dl>
+            <div class="field">
+              <label for="mdlInput">Novo modelo</label>
+              <input type="text" id="mdlInput" class="mono" list="mdlList" placeholder="meta-llama/Llama-3.3-70B-Instruct-Turbo" autocomplete="off">
+              <datalist id="mdlList"><option value="meta-llama/Llama-3.3-70B-Instruct-Turbo"></datalist>
+              <span class="hint">Se a Together exigir um endpoint dedicado para o modelo treinado, coloque aqui o nome desse endpoint.</span>
+            </div>
+            <div class="actions">
+              <button class="btn secondary" type="button" id="btnMdlLoad">Ler do banco</button>
+              <button class="btn" type="button" id="btnMdlPublish">Publicar troca de modelo</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TELEGRAM ============ -->
+      <section id="view-telegram" hidden>
+        <header class="page-head">
+          <h1>Bot do Telegram</h1>
+          <p>Registre o webhook do bot e simule uma mensagem para confirmar que o pipeline responde.</p>
+        </header>
+        <div class="panel">
+          <h2>Registrar webhook</h2>
+          <p class="lead">Chama <code>POST /telegram/set-webhook</code>. O servidor usa <code>APP_PUBLIC_URL</code> + <code>/telegram/webhook</code> e o segredo de <code>TELEGRAM_WEBHOOK_SECRET</code>.</p>
+          <button class="btn" type="button" id="btnTgSet">Registrar webhook</button>
+          <pre class="jsonbox" id="tgSetOut" hidden></pre>
+        </div>
+        <div class="panel">
+          <h2>Simular mensagem recebida</h2>
+          <p class="lead">Envia um update no formato do Telegram para <code>POST /telegram/webhook</code>. A resposta do bot vai para o chat do Telegram com o id informado, não para esta tela. Use o seu chat id real para recebê-la.</p>
+          <div class="grid3">
+            <div class="field"><label for="tgChat">chat_id</label><input type="text" id="tgChat" class="mono" inputmode="numeric" placeholder="123456789" autocomplete="off"></div>
+            <div class="field" style="grid-column:span 2"><label for="tgText">Mensagem</label><input type="text" id="tgText" value="Olá, tudo bem?" autocomplete="off"></div>
+          </div>
+          <div class="field">
+            <label for="tgSecret">Segredo do webhook</label>
+            <input type="password" id="tgSecret" autocomplete="off" placeholder="Igual a TELEGRAM_WEBHOOK_SECRET (deixe vazio se não usa)">
+            <span class="hint">Enviado no cabeçalho <code>X-Telegram-Bot-Api-Secret-Token</code>. Sem o valor certo o servidor responde 401.</span>
+          </div>
+          <button class="btn" type="button" id="btnTgSim">Enviar update de teste</button>
+          <pre class="jsonbox" id="tgSimOut" hidden></pre>
+        </div>
+      </section>
+
+      <!-- ============ CONEXÃO ============ -->
+      <section id="view-connection" hidden>
+        <header class="page-head">
+          <h1>Conexão</h1>
+          <p>Diga ao painel onde o backend está rodando. As credenciais do Supabase são opcionais e só liberam as abas de histórico e modelo.</p>
+        </header>
+        <div class="panel">
+          <h2>Backend FastAPI</h2>
+          <div class="grid2">
+            <div class="field"><label for="cfgApi">URL da API</label><input type="url" id="cfgApi" class="mono" placeholder="http://localhost:8000" autocomplete="off"></div>
+            <div class="field"><label for="cfgAuthName">Cabeçalho de autenticação (opcional)</label><input type="text" id="cfgAuthName" class="mono" placeholder="X-API-Key" autocomplete="off"></div>
+          </div>
+          <div class="field"><label for="cfgAuthValue">Valor do cabeçalho</label><input type="password" id="cfgAuthValue" class="mono" autocomplete="off" placeholder="Deixe vazio enquanto o backend não exigir chave">
+            <span class="hint">O <code>main.py</code> atual não pede autenticação. Quando você proteger <code>/ingest</code>, <code>/feedback</code> e <code>/telegram/set-webhook</code>, coloque a chave aqui e ela irá em todas as chamadas.</span></div>
+          <div class="actions">
+            <button class="btn" type="button" id="btnCfgTest">Salvar e testar conexão</button>
+          </div>
+          <div id="healthBox" style="margin-top:18px" hidden>
+            <dl class="kv" id="healthKv"></dl>
+            <p class="hint" style="margin-top:10px">Os indicadores mostram se as variáveis de ambiente foram configuradas no servidor. Não provam que cada serviço está respondendo.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Supabase (opcional)</h2>
+          <p class="lead">Usado só por este navegador, direto na API REST do Supabase, para listar conversas e editar <code>model_config</code>.</p>
+          <div class="note bad">A chave <code>service_role</code> dá acesso total ao banco. Use este arquivo só na sua máquina e nunca o publique com a chave preenchida. Uma alternativa mais segura é criar endpoints <code>/admin/*</code> no backend.</div>
+          <div class="grid2">
+            <div class="field"><label for="cfgSbUrl">URL do projeto</label><input type="url" id="cfgSbUrl" class="mono" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+            <div class="field"><label for="cfgSbKey">Chave service_role</label><input type="password" id="cfgSbKey" class="mono" autocomplete="off" placeholder="eyJ…"></div>
+          </div>
+          <label class="check" style="margin-bottom:16px">
+            <input type="checkbox" id="cfgRemember">
+            <span>Lembrar chaves neste navegador<br><span class="hint">Desmarcado, chaves e segredos ficam só na memória e somem ao recarregar a página.</span></span>
+          </label>
+          <button class="btn secondary" type="button" id="btnCfgSb">Salvar credenciais</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+<dialog id="dlg"><h3 id="dlgTitle"></h3><p id="dlgMsg"></p><div class="actions"><button class="btn secondary" type="button" id="dlgNo">Cancelar</button><button class="btn" type="button" id="dlgYes">Confirmar</button></div></dialog>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Utilitários
+   ===================================================================== */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return e;
+}
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const fmtDate = (v) => { try { return new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); } catch (e) { return String(v || "—"); } };
+const fmtNum = (n) => Number(n).toLocaleString("pt-BR");
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function toast(msg, kind) {
+  const t = h("div", { class: "toast " + (kind || ""), text: msg });
+  $("#toasts").append(t);
+  setTimeout(() => t.remove(), kind === "bad" ? 7000 : 4000);
+}
+function copy(text) {
+  try { navigator.clipboard.writeText(text).then(() => toast("Copiado.", "ok"), () => toast("Não foi possível copiar.", "bad")); }
+  catch (e) { toast("Não foi possível copiar.", "bad"); }
+}
+function confirmDialog(title, message, yesLabel) {
+  return new Promise((resolve) => {
+    const dlg = $("#dlg");
+    $("#dlgTitle").textContent = title;
+    $("#dlgMsg").textContent = message;
+    $("#dlgYes").textContent = yesLabel || "Confirmar";
+    const done = (v) => { dlg.close(); resolve(v); };
+    $("#dlgYes").onclick = () => done(true);
+    $("#dlgNo").onclick = () => done(false);
+    dlg.oncancel = () => resolve(false);
+    dlg.showModal();
+  });
+}
+function setBusy(btn, busy, label) {
+  if (busy) { btn.dataset.label = btn.textContent; btn.disabled = true; if (label) btn.textContent = label; }
+  else { btn.disabled = false; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
+}
+function showJson(el, data) {
+  el.hidden = false;
+  el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+}
+
+/* =====================================================================
+   Configuração (localStorage com fallback em memória)
+   ===================================================================== */
+const CFG_KEY = "ragadmin.cfg.v1";
+const memStore = {};
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return memStore[k] ?? null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { memStore[k] = v; } },
+};
+const cfg = { apiBase: /^https?:/.test(location.protocol) ? location.origin : "http://localhost:8000", authName: "X-API-Key", authValue: "", sbUrl: "", sbKey: "", tgSecret: "", remember: false };
+function loadCfg() { try { const raw = store.get(CFG_KEY); if (raw) Object.assign(cfg, JSON.parse(raw)); } catch (e) { /* ignora */ } }
+function saveCfg() {
+  const copyCfg = { ...cfg };
+  if (!cfg.remember) { copyCfg.authValue = ""; copyCfg.sbKey = ""; copyCfg.tgSecret = ""; }
+  store.set(CFG_KEY, JSON.stringify(copyCfg));
+}
+function cfgToForm() {
+  $("#cfgApi").value = cfg.apiBase; $("#cfgAuthName").value = cfg.authName; $("#cfgAuthValue").value = cfg.authValue;
+  $("#cfgSbUrl").value = cfg.sbUrl; $("#cfgSbKey").value = cfg.sbKey; $("#cfgRemember").checked = cfg.remember;
+  $("#tgSecret").value = cfg.tgSecret;
+  $("#sideHost").textContent = cfg.apiBase;
+}
+function formToCfg() {
+  cfg.apiBase = $("#cfgApi").value.trim() || "http://localhost:8000";
+  cfg.authName = $("#cfgAuthName").value.trim();
+  cfg.authValue = $("#cfgAuthValue").value;
+  cfg.sbUrl = $("#cfgSbUrl").value.trim();
+  cfg.sbKey = $("#cfgSbKey").value.trim();
+  cfg.remember = $("#cfgRemember").checked;
+  cfg.tgSecret = $("#tgSecret").value;
+  $("#sideHost").textContent = cfg.apiBase;
+}
+
+/* =====================================================================
+   Cliente da API (FastAPI) e do Supabase (REST)
+   ===================================================================== */
+class ApiError extends Error { constructor(msg, status, data) { super(msg); this.status = status; this.data = data; } }
+
+function formatDetail(data) {
+  if (!data) return "";
+  if (typeof data === "string") return data.slice(0, 400);
+  const d = data.detail ?? data.message ?? data.error;
+  if (Array.isArray(d)) return d.map((x) => `${(x.loc || []).slice(1).join(".")}: ${x.msg}`).join("; ");
+  if (d) return typeof d === "string" ? d : JSON.stringify(d);
+  return JSON.stringify(data).slice(0, 400);
+}
+
+async function api(path, { method = "GET", body, headers = {}, timeout = 60000 } = {}) {
+  const base = cfg.apiBase.replace(/\/+$/, "");
+  const hdr = {};
+  if (cfg.authName && cfg.authValue) hdr[cfg.authName] = cfg.authValue;
+  Object.assign(hdr, headers);
+  if (body !== undefined) hdr["Content-Type"] = "application/json";
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeout);
+  let res;
+  try {
+    res = await fetch(base + path, { method, headers: hdr, body: body !== undefined ? JSON.stringify(body) : undefined, signal: ctl.signal });
+  } catch (e) {
+    throw new ApiError(e.name === "AbortError"
+      ? "O servidor demorou demais para responder."
+      : `Não foi possível conectar a ${base}. Confira se o servidor está rodando, se a URL está certa na aba Conexão e se o CORS permite esta origem.`, 0);
+  } finally { clearTimeout(timer); }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+  if (!res.ok) throw new ApiError(formatDetail(data) || res.statusText || "Erro " + res.status, res.status, data);
+  return data;
+}
+
+async function sb(path, { method = "GET", body, prefer } = {}) {
+  if (!cfg.sbUrl || !cfg.sbKey) throw new ApiError("Configure a URL e a chave do Supabase na aba Conexão.", 0);
+  const url = cfg.sbUrl.replace(/\/+$/, "") + "/rest/v1/" + path;
+  const hdr = { apikey: cfg.sbKey };
+  if (!cfg.sbKey.startsWith("sb_")) hdr.Authorization = "Bearer " + cfg.sbKey;
+  if (body !== undefined) hdr["Content-Type"] = "application/json";
+  if (prefer) hdr.Prefer = prefer;
+  let res;
+  try { res = await fetch(url, { method, headers: hdr, body: body !== undefined ? JSON.stringify(body) : undefined }); }
+  catch (e) { throw new ApiError("Não foi possível conectar ao Supabase. Confira a URL do projeto.", 0); }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+  if (!res.ok) {
+    let msg = formatDetail(data) || res.statusText;
+    if (res.status === 401 && cfg.sbKey.startsWith("sb_secret")) msg += " (chaves sb_secret podem ser bloqueadas em navegadores; use a service_role legada ou um endpoint no backend)";
+    throw new ApiError(msg, res.status, data);
+  }
+  return data;
+}
+const hasSb = () => !!(cfg.sbUrl && cfg.sbKey);
+
+/* =====================================================================
+   Saúde do servidor (GET /health)
+   ===================================================================== */
+let health = null;
+function setPill(id, state, text) {
+  const p = $(id);
+  p.querySelector(".dot").className = "dot " + state;
+  if (text !== undefined) p.lastElementChild.textContent = text;
+}
+async function refreshHealth() {
+  const t0 = performance.now();
+  try {
+    const d = await api("/health", { timeout: 8000 });
+    health = { ...d, reachable: true, latency: Math.round(performance.now() - t0), at: new Date() };
+  } catch (e) {
+    health = { reachable: false, error: e.message, at: new Date() };
+  }
+  renderHealth();
+  return health;
+}
+function renderHealth() {
+  const hh = health;
+  if (!hh) return;
+  if (!hh.reachable) {
+    setPill("#pApi", "bad", "Sem conexão");
+    for (const id of ["#pTogether", "#pSupabase", "#pQdrant"]) setPill(id, "");
+    setPill("#pModel", "", "—");
+  } else {
+    setPill("#pApi", hh.status === "ok" ? "ok" : "warn", `Servidor ${hh.status}`);
+    setPill("#pTogether", hh.together ? "ok" : "bad");
+    setPill("#pSupabase", hh.supabase ? "ok" : "bad");
+    setPill("#pQdrant", hh.qdrant ? "ok" : "bad");
+    setPill("#pModel", "ok", hh.active_model || "—");
+    $("#pModel").lastElementChild.className = "mono";
+  }
+  // Conexão
+  const box = $("#healthBox"), kv = $("#healthKv");
+  box.hidden = false; kv.replaceChildren();
+  const row = (k, v) => kv.append(h("dt", { text: k }), h("dd", null, v));
+  if (!hh.reachable) {
+    row("Estado", h("span", { class: "badge bad", text: "Sem conexão" }));
+    row("Detalhe", hh.error);
+  } else {
+    const yn = (b) => h("span", { class: "badge " + (b ? "ok" : "bad"), text: b ? "Configurado" : "Ausente" });
+    row("Estado", h("span", { class: "badge ok", text: "Servidor respondeu" }));
+    row("Together AI", yn(hh.together)); row("Supabase", yn(hh.supabase)); row("Qdrant", yn(hh.qdrant));
+    row("Limite de score", String(hh.score_threshold));
+    row("Modelo ativo", h("span", { class: "mono", text: hh.active_model }));
+    row("Latência", hh.latency + " ms");
+  }
+  row("Verificado em", fmtDate(hh.at));
+  // Modelo
+  $("#mdlServer").textContent = hh.reachable ? hh.active_model : "—";
+  $("#mdlServerAt").textContent = fmtDate(hh.at);
+}
+
+/* =====================================================================
+   Navegação
+   ===================================================================== */
+const VIEWS = ["ingest", "chat", "logs", "model", "telegram", "connection"];
+function route() {
+  let v = location.hash.slice(1);
+  if (!VIEWS.includes(v)) v = "ingest";
+  VIEWS.forEach((n) => { $("#view-" + n).hidden = n !== v; });
+  $$(".nav a").forEach((a) => { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  if (v === "logs") { $("#logsNoSb").hidden = hasSb(); $("#logsBox").hidden = !hasSb(); }
+  if (v === "model") { $("#mdlNoSb").hidden = hasSb(); $("#mdlBox").hidden = !hasSb(); }
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+
+/* =====================================================================
+   Alimentar base (POST /ingest)
+   ===================================================================== */
+const ing = { files: [], plan: [], sending: false, cancel: false, sent: new Set(), failed: new Set() };
+const ACCEPT_EXT = /\.(txt|md|markdown|csv|json|log)$/i;
+
+/** Divide um texto em trechos por parágrafo/frase, com sobreposição opcional. */
+function chunkText(text, size, overlap) {
+  text = text.replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+  if (text.length <= size) return [text];
+  const units = [];
+  for (const p of text.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean)) {
+    if (p.length <= size) { units.push(p); continue; }
+    let cur = "";
+    for (const s of p.split(/(?<=[.!?…])\s+/)) {
+      if (s.length > size) {
+        if (cur) { units.push(cur.trim()); cur = ""; }
+        for (let i = 0; i < s.length; i += size) units.push(s.slice(i, i + size).trim());
+        continue;
+      }
+      if (cur && (cur.length + 1 + s.length) > size) { units.push(cur.trim()); cur = s; }
+      else cur = cur ? cur + " " + s : s;
+    }
+    if (cur.trim()) units.push(cur.trim());
+  }
+  const chunks = [];
+  let cur = "";
+  for (const u of units) {
+    if (!cur) { cur = u; continue; }
+    if (cur.length + 2 + u.length <= size) cur += "\n\n" + u;
+    else { chunks.push(cur); cur = u; }
+  }
+  if (cur) chunks.push(cur);
+  if (overlap > 0) {
+    return chunks.map((c, i) => {
+      if (i === 0) return c;
+      let tail = chunks[i - 1].slice(-overlap);
+      const sp = tail.search(/\s/);
+      if (sp > 0) tail = tail.slice(sp + 1);
+      return tail.trim() ? tail.trim() + "\n" + c : c;
+    });
+  }
+  return chunks;
+}
+
+function buildPlan() {
+  const warns = [];
+  let meta = {};
+  const mraw = $("#ingMeta").value.trim();
+  if (mraw) {
+    try {
+      const m = JSON.parse(mraw);
+      if (m && typeof m === "object" && !Array.isArray(m)) meta = m;
+      else warns.push({ bad: true, text: "Os metadados precisam ser um objeto JSON, como {\"categoria\": \"rh\"}." });
+    } catch (e) { warns.push({ bad: true, text: "JSON de metadados inválido: " + e.message }); }
+  }
+  for (const k of ["text", "title", "doc_id"]) if (k in meta) { delete meta[k]; warns.push({ text: `A chave reservada “${k}” foi removida dos metadados.` }); }
+
+  const title = $("#ingTitle").value.trim();
+  const sources = [];
+  const pasted = $("#ingText").value;
+  if (pasted.trim()) sources.push({ name: title || "Texto colado", text: pasted, origin: "texto colado" });
+  for (const f of ing.files) sources.push({ name: title ? `${title} — ${f.name}` : f.name, text: f.text, origin: f.name });
+
+  const on = $("#ingChunkOn").checked;
+  const size = clamp(parseInt($("#ingSize").value, 10) || 2000, 200, 8000);
+  const overlap = clamp(parseInt($("#ingOverlap").value, 10) || 0, 0, Math.floor(size / 2));
+
+  const plan = [];
+  sources.forEach((s) => {
+    const parts = on ? chunkText(s.text, size, overlap) : [s.text.trim()].filter(Boolean);
+    if (!on && s.text.length > 8000) warns.push({ text: `“${s.name}” tem ${fmtNum(s.text.length)} caracteres e vai como um único vetor. A busca fica mais imprecisa; ative a divisão em trechos.` });
+    parts.forEach((p, i) => plan.push({
+      title: parts.length > 1 ? `${s.name} (${i + 1}/${parts.length})` : s.name,
+      text: p,
+      meta: { source: s.origin, chunk_index: i, chunk_total: parts.length, ...meta },
+    }));
+  });
+
+  const docId = $("#ingDocId").value.trim();
+  if (docId) {
+    if (!UUID_RE.test(docId)) warns.push({ bad: true, text: "O doc_id não é um UUID válido. O Qdrant rejeita ids nesse formato." });
+    else if (plan.length === 1) plan[0].doc_id = docId;
+    else if (plan.length > 1) warns.push({ text: "O doc_id foi ignorado porque o texto virou vários trechos. Cada um recebe um id novo." });
+  }
+
+  ing.plan = plan; ing.sent = new Set(); ing.failed = new Set();
+  ing.blocked = warns.some((w) => w.bad);
+  renderWarnings(warns);
+  renderPreview();
+}
+
+function renderWarnings(warns) {
+  const box = $("#ingWarn");
+  box.replaceChildren(...warns.map((w) => h("div", { class: "note" + (w.bad ? " bad" : ""), text: w.text })));
+}
+
+function renderPreview() {
+  const box = $("#ingPreview");
+  const plan = ing.plan;
+  $("#btnIngSend").disabled = !plan.length || ing.blocked || ing.sending;
+  $("#btnIngSend").textContent = plan.length ? `Enviar ${plan.length} ${plan.length === 1 ? "trecho" : "trechos"}` : "Enviar trechos";
+  if (!plan.length) {
+    box.replaceChildren(h("div", { class: "empty", text: "Cole um texto ou solte arquivos para ver como ele será dividido." }));
+    return;
+  }
+  const total = plan.reduce((a, c) => a + c.text.length, 0);
+  const stats = h("div", { class: "stats" },
+    h("span", null, h("b", { text: fmtNum(plan.length) }), plan.length === 1 ? " trecho" : " trechos"),
+    h("span", null, h("b", { text: fmtNum(total) }), " caracteres"),
+    h("span", null, "média de ", h("b", { text: fmtNum(Math.round(total / plan.length)) })));
+  const ribbon = h("div", { class: "ribbon", role: "list" });
+  plan.forEach((c, i) => {
+    const b = h("button", {
+      type: "button", role: "listitem", id: "rb" + i, style: `flex-grow:${Math.max(c.text.length, 1)}`,
+      title: `Trecho ${i + 1}: ${fmtNum(c.text.length)} caracteres`, "aria-label": `Trecho ${i + 1}, ${c.text.length} caracteres`,
+      onclick: () => { const d = $("#chunk" + i); if (d) { d.open = true; d.scrollIntoView({ block: "nearest", behavior: "smooth" }); } },
+    });
+    ribbon.append(b);
+  });
+  const MAXLIST = 60;
+  const list = h("div", { class: "chunks" });
+  plan.slice(0, MAXLIST).forEach((c, i) => {
+    list.append(h("details", { id: "chunk" + i },
+      h("summary", null, h("span", { text: c.title }), h("span", { text: fmtNum(c.text.length) + " car." })),
+      h("pre", { text: c.text })));
+  });
+  if (plan.length > MAXLIST) list.append(h("div", { class: "hint", text: `Mostrando os primeiros ${MAXLIST} de ${fmtNum(plan.length)} trechos. Todos serão enviados.` }));
+  box.replaceChildren(stats, ribbon, list);
+}
+
+function paintRibbon() {
+  ing.plan.forEach((_, i) => {
+    const b = $("#rb" + i); if (!b) return;
+    b.classList.toggle("sent", ing.sent.has(i));
+    b.classList.toggle("failed", ing.failed.has(i));
+  });
+}
+
+function logLine(kind, text) {
+  const li = h("li", { class: kind }, h("span", { text: kind === "ok" ? "✔" : "✖" }), h("span", { text }));
+  const log = $("#ingLog");
+  log.prepend(li);
+  while (log.children.length > 300) log.lastChild.remove();
+}
+
+async function sendPlan(indices) {
+  if (ing.sending || !indices.length) return;
+  ing.sending = true; ing.cancel = false;
+  $("#ingForm").disabled = true;
+  $("#btnIngSend").disabled = true; $("#btnIngRetry").hidden = true;
+  $("#btnIngCancel").hidden = false; $("#btnIngClear").disabled = true;
+  $("#ingProgressWrap").hidden = false;
+  let done = 0, okCount = 0, failCount = 0;
+  const update = () => {
+    $("#ingProgress").style.width = Math.round((done / indices.length) * 100) + "%";
+    $("#ingProgressText").textContent = `${done} de ${indices.length} enviados · ${okCount} com sucesso · ${failCount} com falha`;
+  };
+  update();
+  for (const i of indices) {
+    if (ing.cancel) break;
+    const c = ing.plan[i];
+    const body = { title: c.title, text: c.text, metadata: c.meta };
+    if (c.doc_id) body.doc_id = c.doc_id;
+    try {
+      const r = await api("/ingest", { method: "POST", body, timeout: 120000 });
+      ing.sent.add(i); ing.failed.delete(i); okCount++;
+      logLine("ok", `${c.title} → ${r && r.doc_id ? r.doc_id : "ok"}`);
+    } catch (e) {
+      ing.failed.add(i); failCount++;
+      logLine("bad", `${c.title}: ${e.message}`);
+      if (e.status === 0) { done++; update(); paintRibbon(); ing.cancel = true; toast("Envio interrompido: sem conexão com o servidor.", "bad"); break; }
+    }
+    done++; update(); paintRibbon();
+  }
+  ing.sending = false;
+  $("#ingForm").disabled = false;
+  $("#btnIngCancel").hidden = true; $("#btnIngClear").disabled = false;
+  $("#btnIngSend").disabled = false;
+  $("#btnIngRetry").hidden = ing.failed.size === 0;
+  if (ing.failed.size) $("#btnIngRetry").textContent = `Reenviar ${ing.failed.size} ${ing.failed.size === 1 ? "falha" : "falhas"}`;
+  if (okCount && !failCount) toast(`${okCount} ${okCount === 1 ? "trecho indexado" : "trechos indexados"} no Qdrant.`, "ok");
+  else if (failCount) toast(`${failCount} ${failCount === 1 ? "trecho falhou" : "trechos falharam"}. Veja o registro abaixo.`, "bad");
+}
+
+function renderFileList() {
+  const ul = $("#ingFileList");
+  ul.replaceChildren(...ing.files.map((f, i) => h("li", null,
+    h("span", { text: `${f.name} · ${fmtNum(f.text.length)} car.` }),
+    h("button", { type: "button", "aria-label": "Remover " + f.name, text: "Remover", onclick: () => { ing.files.splice(i, 1); renderFileList(); buildPlan(); } }))));
+}
+
+async function addFiles(fileList) {
+  const rejected = [];
+  for (const f of Array.from(fileList)) {
+    if (!ACCEPT_EXT.test(f.name) && !(f.type || "").startsWith("text/")) { rejected.push(f.name); continue; }
+    try {
+      const text = await f.text();
+      if (text.trim()) ing.files.push({ name: f.name, text });
+      else rejected.push(f.name + " (vazio)");
+    } catch (e) { rejected.push(f.name); }
+  }
+  if (rejected.length) toast("Não lidos: " + rejected.join(", ") + ". Para PDFs e imagens, extraia o texto antes; o /ingest recebe apenas texto.", "bad");
+  renderFileList(); buildPlan();
+}
+
+function initIngest() {
+  let timer;
+  const later = () => { clearTimeout(timer); timer = setTimeout(buildPlan, 200); };
+  ["#ingTitle", "#ingText", "#ingSize", "#ingOverlap", "#ingDocId", "#ingMeta"].forEach((s) => $(s).addEventListener("input", later));
+  $("#ingChunkOn").addEventListener("change", buildPlan);
+  $("#ingText").addEventListener("input", () => { $("#ingCount").textContent = fmtNum($("#ingText").value.length) + " caracteres"; });
+  const drop = $("#ingDrop"), fin = $("#ingFiles");
+  drop.addEventListener("click", () => fin.click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fin.click(); } });
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); });
+  fin.addEventListener("change", () => { addFiles(fin.files); fin.value = ""; });
+  $("#btnIngSend").addEventListener("click", () => sendPlan(ing.plan.map((_, i) => i)));
+  $("#btnIngRetry").addEventListener("click", () => sendPlan(Array.from(ing.failed).sort((a, b) => a - b)));
+  $("#btnIngCancel").addEventListener("click", () => { ing.cancel = true; });
+  $("#btnIngClear").addEventListener("click", () => {
+    ing.files = []; ["#ingTitle", "#ingText", "#ingDocId", "#ingMeta"].forEach((s) => { $(s).value = ""; });
+    $("#ingCount").textContent = "0 caracteres"; $("#ingLog").replaceChildren();
+    $("#ingProgressWrap").hidden = true; $("#ingProgressText").textContent = ""; $("#btnIngRetry").hidden = true;
+    renderFileList(); buildPlan();
+  });
+  buildPlan();
+}
+
+/* =====================================================================
+   Testar chat (POST /chat, POST /feedback)
+   ===================================================================== */
+const ratingLabel = { "1": "Boa", "0": "Neutra", "-1": "Ruim" };
+
+async function postFeedback(conversation_id, rating, comment) {
+  const body = { conversation_id, rating: Number(rating) };
+  if (comment) body.comment = comment;
+  return api("/feedback", { method: "POST", body });
+}
+
+function feedbackControls(conversationId) {
+  let rating = null;
+  const btns = ["1", "0", "-1"].map((r) => h("button", {
+    type: "button", "aria-pressed": "false", text: ratingLabel[r],
+    onclick: () => { rating = r; btns.forEach((b, i) => b.setAttribute("aria-pressed", String(["1", "0", "-1"][i] === r))); send.disabled = false; },
+  }));
+  const comment = h("input", { type: "text", placeholder: "Comentário (opcional)", "aria-label": "Comentário do feedback" });
+  const send = h("button", { class: "btn small", type: "button", text: "Enviar feedback", disabled: true });
+  const wrap = h("div", { class: "fb" }, h("div", { class: "seg", role: "group", "aria-label": "Avaliação" }, btns), comment, send);
+  send.addEventListener("click", async () => {
+    setBusy(send, true, "Enviando…");
+    try {
+      await postFeedback(conversationId, rating, comment.value.trim());
+      wrap.replaceChildren(h("span", { class: "badge ok", text: "Feedback enviado: " + ratingLabel[rating] }));
+    } catch (e) { setBusy(send, false); send.disabled = false; toast("Feedback não enviado: " + e.message, "bad"); }
+  });
+  return wrap;
+}
+
+function sourcesBlock(sources) {
+  const thr = health && health.reachable ? Number(health.score_threshold) : 0.55;
+  const above = sources.filter((s) => s.score >= thr).length;
+  const det = h("details", { class: "src" },
+    h("summary", { text: `${sources.length} ${sources.length === 1 ? "trecho recuperado" : "trechos recuperados"} · ${above} acima do limite ${thr}` }));
+  const ul = h("ul");
+  sources.forEach((s) => {
+    const ok = s.score >= thr;
+    ul.append(h("li", { class: ok ? "" : "low" },
+      h("div", { style: "display:flex;gap:8px;flex-wrap:wrap;align-items:center" },
+        h("b", { text: s.title || "(sem título)" }),
+        h("span", { class: "badge " + (ok ? "ok" : ""), text: "score " + Number(s.score).toFixed(3) }),
+        ok ? null : h("span", { class: "badge", text: "ignorado no prompt" })),
+      h("p", { text: s.text })));
+  });
+  det.append(ul);
+  return det;
+}
+
+function addMsg(node) {
+  const empty = $("#chatEmpty"); if (empty) empty.remove();
+  const t = $("#transcript");
+  t.append(node); t.scrollTop = t.scrollHeight;
+}
+
+let chatBusy = false;
+async function sendChat() {
+  if (chatBusy) return;
+  const input = $("#chatInput");
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = ""; input.style.height = "";
+  addMsg(h("div", { class: "msg user", text: message }));
+  const pending = h("div", { class: "msg bot", text: "Pensando…" });
+  addMsg(pending);
+  chatBusy = true; $("#btnChatSend").disabled = true;
+  const body = {
+    user_id: $("#chatUser").value.trim() || "admin-teste",
+    message, channel: $("#chatChannel").value,
+    top_k: clamp(parseInt($("#chatTopK").value, 10) || 5, 1, 20),
+  };
+  const t0 = performance.now();
+  try {
+    const r = await api("/chat", { method: "POST", body, timeout: 120000 });
+    const ms = Math.round(performance.now() - t0);
+    const node = h("div", { class: "msg bot" },
+      h("div", { text: r.answer }),
+      h("div", { class: "meta" },
+        h("span", { text: (ms / 1000).toFixed(1) + " s" }),
+        h("span", { class: "mono", text: r.conversation_id }),
+        h("button", { class: "btn secondary small", type: "button", text: "Copiar id", onclick: () => copy(r.conversation_id) })),
+      r.sources && r.sources.length ? sourcesBlock(r.sources) : h("div", { class: "meta", text: "Nenhum trecho recuperado da base." }),
+      feedbackControls(r.conversation_id));
+    pending.replaceWith(node);
+    $("#fbId").value = r.conversation_id;
+  } catch (e) {
+    pending.replaceWith(h("div", { class: "msg err", text: e.message }));
+  } finally {
+    chatBusy = false; $("#btnChatSend").disabled = false;
+    const t = $("#transcript"); t.scrollTop = t.scrollHeight; input.focus();
+  }
+}
+
+function initChat() {
+  $("#btnChatSend").addEventListener("click", sendChat);
+  const input = $("#chatInput");
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+  input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 160) + "px"; });
+  $("#btnChatClear").addEventListener("click", () => {
+    $("#transcript").replaceChildren(h("div", { class: "empty", id: "chatEmpty", text: "Escreva uma pergunta ou uma saudação para ver a resposta, os trechos recuperados e os scores." }));
+  });
+}
+
+/* =====================================================================
+   Conversas e feedback
+   ===================================================================== */
+let logs = [];
+
+function initFeedbackForm() {
+  $("#btnFbSend").addEventListener("click", async () => {
+    const id = $("#fbId").value.trim();
+    if (!id) { toast("Informe o conversation_id.", "bad"); return; }
+    const btn = $("#btnFbSend");
+    setBusy(btn, true, "Enviando…");
+    try {
+      await postFeedback(id, $("#fbRating").value, $("#fbComment").value.trim());
+      toast("Feedback gravado.", "ok"); $("#fbComment").value = "";
+      const row = logs.find((l) => l.id === id);
+      if (row) { row.rating = Number($("#fbRating").value); renderLogs(); }
+    } catch (e) { toast("Feedback não enviado: " + e.message, "bad"); }
+    finally { setBusy(btn, false); }
+  });
+}
+
+async function loadLogs() {
+  const btn = $("#btnLogsLoad");
+  setBusy(btn, true, "Carregando…");
+  try {
+    const limit = parseInt($("#fltLimit").value, 10) || 100;
+    const convs = await sb(`conversations?select=id,user_id,channel,user_message,answer,created_at&order=created_at.desc&limit=${limit}`);
+    const fbMap = {};
+    if (convs.length) {
+      const ids = convs.map((c) => c.id).join(",");
+      const fbs = await sb(`feedback?select=conversation_id,rating,comment,created_at&conversation_id=in.(${ids})&order=created_at.desc`);
+      for (const f of fbs) if (!(f.conversation_id in fbMap)) fbMap[f.conversation_id] = f;
+    }
+    logs = convs.map((c) => ({ ...c, rating: c.id in fbMap ? fbMap[c.id].rating : null, comment: c.id in fbMap ? fbMap[c.id].comment : null }));
+    renderLogs();
+    toast(`${logs.length} conversas carregadas.`, "ok");
+  } catch (e) { toast("Não foi possível carregar: " + e.message, "bad"); }
+  finally { setBusy(btn, false); }
+}
+
+function filteredLogs() {
+  const r = $("#fltRating").value, ch = $("#fltChannel").value, q = $("#fltSearch").value.trim().toLowerCase();
+  return logs.filter((l) => {
+    if (r === "none" && l.rating !== null) return false;
+    if (["1", "0", "-1"].includes(r) && l.rating !== Number(r)) return false;
+    if (ch !== "all" && l.channel !== ch) return false;
+    if (q && !((l.user_message || "") + " " + (l.answer || "")).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function ratingBadge(r) {
+  if (r === null || r === undefined) return h("span", { class: "badge", text: "Sem feedback" });
+  if (r === 1) return h("span", { class: "badge ok", text: "Boa" });
+  if (r === -1) return h("span", { class: "badge bad", text: "Ruim" });
+  return h("span", { class: "badge warn", text: "Neutra" });
+}
+
+function renderLogs() {
+  const good = logs.filter((l) => l.rating === 1).length, bad = logs.filter((l) => l.rating === -1).length;
+  const none = logs.filter((l) => l.rating === null).length;
+  $("#logsCounts").replaceChildren(
+    h("span", null, h("b", { text: fmtNum(logs.length) }), "carregadas"),
+    h("span", null, h("b", { text: fmtNum(good) }), "boas"),
+    h("span", null, h("b", { text: fmtNum(bad) }), "ruins"),
+    h("span", null, h("b", { text: fmtNum(none) }), "sem feedback"));
+  const rows = filteredLogs();
+  $("#logsTableWrap").hidden = !rows.length;
+  $("#logsEmpty").hidden = rows.length > 0;
+  $("#logsEmpty").textContent = logs.length ? "Nenhuma conversa com esses filtros." : "Clique em Carregar para listar as conversas.";
+  const body = $("#logsBody");
+  body.replaceChildren(...rows.map((l) => {
+    const rate = (val) => async (ev) => {
+      ev.stopPropagation();
+      const b = ev.currentTarget; b.disabled = true;
+      try { await postFeedback(l.id, val); l.rating = val; renderLogs(); }
+      catch (e) { b.disabled = false; toast("Feedback não enviado: " + e.message, "bad"); }
+    };
+    const tr = h("tr", { title: "Clique para expandir" },
+      h("td", { class: "nowrap", text: fmtDate(l.created_at) }),
+      h("td", null, h("span", { class: "badge", text: l.channel || "—" })),
+      h("td", null, h("div", { class: "clamp", text: l.user_message })),
+      h("td", null, h("div", { class: "clamp", text: l.answer })),
+      h("td", null, ratingBadge(l.rating), l.comment ? h("div", { class: "hint", text: l.comment }) : null),
+      h("td", { class: "nowrap" },
+        h("div", { class: "actions", style: "gap:6px;flex-wrap:nowrap" },
+          h("button", { class: "btn secondary small", type: "button", text: "Boa", onclick: rate(1) }),
+          h("button", { class: "btn bad small", type: "button", text: "Ruim", onclick: rate(-1) }))));
+    tr.addEventListener("click", () => tr.classList.toggle("open"));
+    return tr;
+  }));
+  const eligible = logs.filter((l) => l.rating === 1 && l.user_message && l.answer).length;
+  $("#btnExport").disabled = eligible === 0;
+  $("#exportHint").textContent = eligible === 0
+    ? "Ainda não há conversas avaliadas como boas entre as carregadas."
+    : `${fmtNum(eligible)} ${eligible === 1 ? "conversa está" : "conversas estão"} elegíveis (avaliação = 1). Cada linha do arquivo tem o formato de mensagens usado no fine-tuning de chat da Together AI. Com poucos exemplos o ganho é pequeno e o risco de piorar o modelo é maior, então avalie o resultado antes de trocar o modelo em produção.`;
+}
+
+function exportJsonl() {
+  const lines = logs.filter((l) => l.rating === 1 && l.user_message && l.answer)
+    .map((l) => JSON.stringify({ messages: [{ role: "user", content: l.user_message }, { role: "assistant", content: l.answer }] }));
+  if (!lines.length) { toast("Nada para exportar.", "bad"); return; }
+  const blob = new Blob([lines.join("\n") + "\n"], { type: "application/jsonl" });
+  const a = h("a", { href: URL.createObjectURL(blob), download: `dataset-finetune-${new Date().toISOString().slice(0, 10)}.jsonl` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`${lines.length} exemplos exportados.`, "ok");
+}
+
+function initLogs() {
+  initFeedbackForm();
+  $("#btnLogsLoad").addEventListener("click", loadLogs);
+  ["#fltRating", "#fltChannel"].forEach((s) => $(s).addEventListener("change", renderLogs));
+  $("#fltSearch").addEventListener("input", renderLogs);
+  $("#btnExport").addEventListener("click", exportJsonl);
+  renderLogs();
+}
+
+/* =====================================================================
+   Modelo (model_config no Supabase + /health)
+   ===================================================================== */
+async function loadModelConfig() {
+  const btn = $("#btnMdlLoad");
+  setBusy(btn, true, "Lendo…");
+  try {
+    const rows = await sb("model_config?select=*&id=eq.1");
+    if (rows.length) {
+      $("#mdlDb").textContent = rows[0].active_model; $("#mdlDbAt").textContent = fmtDate(rows[0].updated_at);
+      if (!$("#mdlInput").value) $("#mdlInput").value = rows[0].active_model;
+    } else {
+      $("#mdlDb").textContent = "Sem linha (o servidor usa o valor do .env)"; $("#mdlDbAt").textContent = "—";
+    }
+  } catch (e) { toast("Não foi possível ler model_config: " + e.message, "bad"); }
+  finally { setBusy(btn, false); }
+}
+
+async function publishModel() {
+  const val = $("#mdlInput").value.trim();
+  if (!val) { toast("Informe o nome do modelo.", "bad"); return; }
+  const ok = await confirmDialog("Trocar o modelo em produção?", `O servidor passará a responder com “${val}” em até alguns minutos, por causa do cache de model_config.`, "Publicar troca");
+  if (!ok) return;
+  const btn = $("#btnMdlPublish");
+  setBusy(btn, true, "Publicando…");
+  try {
+    const existing = await sb("model_config?select=id&id=eq.1");
+    if (existing.length) await sb("model_config?id=eq.1", { method: "PATCH", body: { active_model: val, updated_at: new Date().toISOString() }, prefer: "return=representation" });
+    else await sb("model_config", { method: "POST", body: { id: 1, active_model: val }, prefer: "return=representation" });
+    toast("Modelo atualizado no banco.", "ok");
+    await loadModelConfig();
+    $("#mdlCheckMsg").textContent = "Gravado. Use “Conferir no servidor” para ver quando o cache expirar (padrão de 5 minutos).";
+  } catch (e) { toast("Não foi possível publicar: " + e.message, "bad"); }
+  finally { setBusy(btn, false); }
+}
+
+async function checkModelOnServer() {
+  const btn = $("#btnMdlCheck");
+  setBusy(btn, true, "Conferindo…");
+  const hh = await refreshHealth();
+  setBusy(btn, false);
+  const msg = $("#mdlCheckMsg");
+  if (!hh.reachable) { msg.textContent = "Sem conexão com o servidor."; return; }
+  const want = $("#mdlInput").value.trim();
+  if (want && want !== hh.active_model) msg.textContent = `O servidor ainda usa “${hh.active_model}”. Aguarde o cache expirar e confira de novo.`;
+  else msg.textContent = `O servidor está usando “${hh.active_model}”.`;
+}
+
+function initModel() {
+  $("#btnMdlLoad").addEventListener("click", loadModelConfig);
+  $("#btnMdlPublish").addEventListener("click", publishModel);
+  $("#btnMdlCheck").addEventListener("click", checkModelOnServer);
+}
+
+/* =====================================================================
+   Telegram
+   ===================================================================== */
+function initTelegram() {
+  $("#btnTgSet").addEventListener("click", async () => {
+    const ok = await confirmDialog("Registrar o webhook?", "O bot passará a enviar as mensagens para o endereço definido em APP_PUBLIC_URL no servidor. Isso substitui o webhook atual.", "Registrar");
+    if (!ok) return;
+    const btn = $("#btnTgSet"); setBusy(btn, true, "Registrando…");
+    try { const r = await api("/telegram/set-webhook", { method: "POST" }); showJson($("#tgSetOut"), r); toast(r && r.ok ? "Webhook registrado." : "O Telegram respondeu; veja o resultado.", r && r.ok ? "ok" : "bad"); }
+    catch (e) { showJson($("#tgSetOut"), e.message); toast(e.message, "bad"); }
+    finally { setBusy(btn, false); }
+  });
+  $("#btnTgSim").addEventListener("click", async () => {
+    const chat = $("#tgChat").value.trim(), text = $("#tgText").value.trim();
+    if (!/^-?\d+$/.test(chat)) { toast("O chat_id precisa ser numérico.", "bad"); return; }
+    if (!text) { toast("Escreva a mensagem.", "bad"); return; }
+    cfg.tgSecret = $("#tgSecret").value; saveCfg();
+    const now = Date.now();
+    const update = { update_id: now, message: { message_id: now % 1000000, date: Math.floor(now / 1000), chat: { id: Number(chat), type: "private" }, from: { id: Number(chat), is_bot: false, first_name: "Teste do painel" }, text } };
+    const headers = cfg.tgSecret ? { "X-Telegram-Bot-Api-Secret-Token": cfg.tgSecret } : {};
+    const btn = $("#btnTgSim"); setBusy(btn, true, "Enviando…");
+    try { const r = await api("/telegram/webhook", { method: "POST", body: update, headers }); showJson($("#tgSimOut"), r); toast("Update aceito. A resposta segue para o Telegram.", "ok"); }
+    catch (e) { showJson($("#tgSimOut"), `Erro ${e.status || ""}: ${e.message}`); toast(e.message, "bad"); }
+    finally { setBusy(btn, false); }
+  });
+}
+
+/* =====================================================================
+   Conexão
+   ===================================================================== */
+function initConnection() {
+  $("#btnCfgTest").addEventListener("click", async () => {
+    formToCfg(); saveCfg();
+    const btn = $("#btnCfgTest"); setBusy(btn, true, "Testando…");
+    const hh = await refreshHealth();
+    setBusy(btn, false);
+    toast(hh.reachable ? "Servidor respondeu." : hh.error, hh.reachable ? "ok" : "bad");
+  });
+  $("#btnCfgSb").addEventListener("click", () => {
+    formToCfg(); saveCfg();
+    toast(hasSb() ? "Credenciais do Supabase salvas." : "Preencha a URL e a chave para liberar histórico e modelo.", hasSb() ? "ok" : "bad");
+    route();
+  });
+  $("#btnRefresh").addEventListener("click", async () => {
+    const btn = $("#btnRefresh"); setBusy(btn, true, "Verificando…");
+    await refreshHealth(); setBusy(btn, false);
+  });
+}
+
+/* =====================================================================
+   Início
+   ===================================================================== */
+loadCfg();
+cfgToForm();
+initConnection();
+initIngest();
+initChat();
+initLogs();
+initModel();
+initTelegram();
+route();
+refreshHealth();
+setInterval(() => { if (!document.hidden && !ing.sending) refreshHealth(); }, 30000);
+</script>
+</body>
+</html>
